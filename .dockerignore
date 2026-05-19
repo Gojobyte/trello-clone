@@ -1,0 +1,36 @@
+# Dockerignore — exclut tout ce qui n'est pas nécessaire au build
+node_modules
+.output
+.tanstack
+.nitro
+dist
+dist-ssr
+build
+
+# Git
+.git
+.gitignore
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+coverage
+.nyc_output
+images/
+scripts/
+README.md
+__unconfig*
+todos.json

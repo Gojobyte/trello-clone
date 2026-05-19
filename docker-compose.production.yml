@@ -1,0 +1,52 @@
+# Docker Compose pour le déploiement production du frontend Trello clone.
+#
+# Convex tourne déjà dans un container séparé (trello-convex-backend) sur le
+# même hôte Hetzner. Ce compose ajoute UNIQUEMENT le frontend.
+#
+# Le reverse-proxy HTTPS est assuré par le Caddy existant (CHADIA) qui pointe
+# `trello.tondomaine.xyz` vers ce container (port 3000) et `api.tondomaine.xyz`
+# vers le container Convex (port 3210). Voir Caddyfile.trello.
+#
+# Usage (sur le serveur Hetzner) :
+#   docker compose -f docker-compose.production.yml up -d --build
+#
+version: "3.9"
+
+services:
+  trello-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # ⚠ Ces URLs sont inline dans le bundle client. À remplacer par tes
+        # vraies URLs publiques avant le `docker compose build`.
+        VITE_CONVEX_URL: https://api.${TRELLO_DOMAIN:-example.xyz}
+        VITE_CONVEX_SITE_URL: https://auth.${TRELLO_DOMAIN:-example.xyz}
+        VITE_SITE_URL: https://trello.${TRELLO_DOMAIN:-example.xyz}
+    image: trello-frontend:latest
+    container_name: trello-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      # Auth Better-Auth runtime
+      BETTER_AUTH_URL: https://trello.${TRELLO_DOMAIN:-example.xyz}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      SITE_URL: https://trello.${TRELLO_DOMAIN:-example.xyz}
+    expose:
+      - "3000"
+    # Pas de "ports:" car Caddy s'en occupe via le réseau Docker partagé
+    networks:
+      - chadia-projects_default
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+networks:
+  # Réutilise le réseau Docker du Caddy CHADIA pour qu'il puisse nous joindre
+  chadia-projects_default:
+    external: true
