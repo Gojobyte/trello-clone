@@ -1,0 +1,23 @@
+{
+  "projectName": "trello-clone",
+  "mode": "file-router",
+  "typescript": true,
+  "tailwind": true,
+  "packageManager": "npm",
+  "git": true,
+  "install": true,
+  "intent": true,
+  "addOnOptions": {},
+  "includeExamples": false,
+  "envVarValues": {},
+  "routerOnly": false,
+  "version": 1,
+  "framework": "react",
+  "chosenAddOns": [
+    "convex",
+    "better-auth",
+    "shadcn",
+    "tanstack-query",
+    "biome"
+  ]
+}

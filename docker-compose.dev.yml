@@ -1,0 +1,42 @@
+name: trello-clone-dev
+
+services:
+  convex-backend:
+    image: ghcr.io/get-convex/convex-backend:latest
+    container_name: trello-convex-backend
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    ports:
+      - "127.0.0.1:3210:3210"
+      - "127.0.0.1:3211:3211"
+    volumes:
+      - convex_data:/convex/data
+    environment:
+      INSTANCE_NAME: trello-clone
+      INSTANCE_SECRET: 9578ea41c00046a09d027d276cff267be04a8798ba0b6f3a001e093aa78f6983
+      CONVEX_CLOUD_ORIGIN: http://127.0.0.1:3210
+      CONVEX_SITE_ORIGIN: http://127.0.0.1:3211
+      RUST_LOG: info
+      DISABLE_BEACON: "true"
+    healthcheck:
+      test: curl -f http://localhost:3210/version
+      interval: 5s
+      start_period: 10s
+      timeout: 3s
+      retries: 10
+
+  convex-dashboard:
+    image: ghcr.io/get-convex/convex-dashboard:latest
+    container_name: trello-convex-dashboard
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    ports:
+      - "127.0.0.1:6791:6791"
+    environment:
+      NEXT_PUBLIC_DEPLOYMENT_URL: http://127.0.0.1:3210
+    depends_on:
+      convex-backend:
+        condition: service_healthy
+
+volumes:
+  convex_data:
