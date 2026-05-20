@@ -10,7 +10,7 @@
 # Usage (sur le serveur Hetzner) :
 #   docker compose -f docker-compose.production.yml up -d --build
 #
-version: "3.9"
+# Note : `version` retiré (obsolète depuis Compose v2).
 
 services:
   trello-frontend:
@@ -30,6 +30,13 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3000
+      # Convex côté SSR Node : Vite inline les VITE_* au build, mais le bundle
+      # serveur les lit AUSSI via process.env au runtime → il faut les exposer.
+      VITE_CONVEX_URL: https://api.${TRELLO_DOMAIN:-example.xyz}
+      VITE_CONVEX_SITE_URL: https://auth.${TRELLO_DOMAIN:-example.xyz}
+      VITE_SITE_URL: https://trello.${TRELLO_DOMAIN:-example.xyz}
+      CONVEX_URL: https://api.${TRELLO_DOMAIN:-example.xyz}
+      CONVEX_SITE_URL: https://auth.${TRELLO_DOMAIN:-example.xyz}
       # Auth Better-Auth runtime
       BETTER_AUTH_URL: https://trello.${TRELLO_DOMAIN:-example.xyz}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
@@ -38,7 +45,7 @@ services:
       - "3000"
     # Pas de "ports:" car Caddy s'en occupe via le réseau Docker partagé
     networks:
-      - chadia-projects_default
+      - chadia-projects_chadia
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
@@ -48,5 +55,5 @@ services:
 
 networks:
   # Réutilise le réseau Docker du Caddy CHADIA pour qu'il puisse nous joindre
-  chadia-projects_default:
+  chadia-projects_chadia:
     external: true

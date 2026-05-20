@@ -3,7 +3,7 @@
 # =========================================================================
 # Stage 1 : Build
 # =========================================================================
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -30,7 +30,7 @@ RUN npm run build
 # =========================================================================
 # Stage 2 : Runtime (image minimale)
 # =========================================================================
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 
@@ -38,8 +38,16 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S -u 1001 -G nodejs trello
 
-# Copie uniquement le build output (~10-30 Mo, beaucoup plus léger que node_modules)
-COPY --from=builder --chown=trello:nodejs /app/.output ./.output
+# Installe UNIQUEMENT les deps de prod (TanStack Start ne bundle pas
+# react/react-dom etc. dans dist/, donc on en a besoin au runtime).
+COPY package.json package-lock.json* ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+
+# Copie le build (client + server). TanStack Start 1.168 produit `dist/`.
+COPY --from=builder --chown=trello:nodejs /app/dist ./dist
+
+# Copie le wrapper Node HTTP (Hono) qui sert les assets + SSR
+COPY --chown=trello:nodejs server-prod.mjs ./server-prod.mjs
 
 USER trello
 
@@ -50,5 +58,5 @@ ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-# TanStack Start produit un serveur Nitro autonome
-CMD ["node", ".output/server/index.mjs"]
+# Entry point : serveur Hono qui sert static + SSR handler
+CMD ["node", "server-prod.mjs"]

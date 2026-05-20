@@ -13,6 +13,10 @@
 
 set -euo pipefail
 
+# Sur ce serveur Hetzner, le DOCKER_HOST par défaut pointe sur un socket
+# rootless inexistant. On force toujours le socket système.
+export DOCKER_HOST="unix:///var/run/docker.sock"
+
 # --- Configuration ----------------------------------------------------------
 TRELLO_DOMAIN="projetsynergie.fr"
 CHADIA_CADDYFILE="/home/hermes/chadia-projects/Caddyfile"
@@ -60,7 +64,12 @@ if [ "$ALL_OK" = false ]; then
   fi
 fi
 
-# --- Étape 3 : Build & run le container frontend ---------------------------
+# --- Étape 3a : S'assurer que Caddy CHADIA a accès au réseau de Convex -----
+echo "→ Connexion de Caddy au réseau Convex (idempotent)..."
+docker network connect trello-clone-dev_default "$CADDY_CONTAINER" 2>/dev/null || true
+echo "  ✓ Caddy peut joindre trello-convex-backend"
+
+# --- Étape 3b : Build & run le container frontend --------------------------
 echo "→ Build container trello-frontend..."
 docker compose --env-file "$ENV_FILE" -f docker-compose.production.yml up -d --build
 
