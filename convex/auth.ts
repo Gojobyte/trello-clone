@@ -8,12 +8,20 @@ import type { DataModel } from './_generated/dataModel'
 
 const siteUrl = process.env.SITE_URL!
 
+// Origines autorisées (dev + prod). Ajouter ici tout nouveau domaine.
+const trustedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://trello.projetsynergie.fr',
+  'https://projetsynergie.fr',
+]
+
 export const authComponent = createClient<DataModel>(components.betterAuth)
 
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
     baseURL: siteUrl,
-    trustedOrigins: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    trustedOrigins,
     database: authComponent.adapter(ctx),
     emailAndPassword: {
       enabled: true,
