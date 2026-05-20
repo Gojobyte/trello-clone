@@ -35,7 +35,10 @@ function LoginPage() {
       setError(signInError.message ?? 'Erreur de connexion')
       return
     }
-    navigate({ to: '/' })
+    // Hard navigation pour forcer la lecture du cookie de session côté SSR.
+    // Un client-side navigate peut afficher /boards avant que la session soit
+    // disponible côté serveur → bannière de redirect vers /login en boucle.
+    window.location.href = '/boards'
   }
 
   return (

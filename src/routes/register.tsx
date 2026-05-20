@@ -37,7 +37,7 @@ function RegisterPage() {
       setError(signUpError.message ?? "Erreur lors de l'inscription")
       return
     }
-    navigate({ to: '/' })
+    window.location.href = '/boards'
   }
 
   return (
