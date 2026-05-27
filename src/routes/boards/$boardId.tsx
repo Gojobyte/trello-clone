@@ -41,6 +41,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "#/components/ui/popover";
+import { AppShell } from "#/features/app/AppShell";
 import { BoardFooter, type BoardViewMode } from "#/features/board/BoardFooter";
 import { BoardMenu } from "#/features/board/BoardMenu";
 import { CardItem } from "#/features/board/card/CardItem";
@@ -51,19 +52,12 @@ import {
 	SortableListColumn,
 } from "#/features/board/list/ListColumn";
 import { MemberAvatar } from "#/features/board/shared/MemberAvatar";
-import { NotificationBell } from "#/features/board/shared/NotificationBell";
 import { ShareBoardDialog } from "#/features/board/shared/ShareBoardDialog";
 import { CalendarView } from "#/features/board/views/CalendarView";
 import { TableView } from "#/features/board/views/TableView";
 import { TimelineView } from "#/features/board/views/TimelineView";
-import { FlowboardLogoFull } from "#/features/shared/FlowboardLogo";
-import { GlobalSearch } from "#/features/shared/GlobalSearch";
 import { authClient } from "#/lib/auth-client";
-import {
-	BOARD_GRADIENTS,
-	gradientFor,
-	photoFor,
-} from "#/lib/board-backgrounds";
+import { gradientFor, photoFor } from "#/lib/board-backgrounds";
 import { midPosition } from "#/lib/board-helpers";
 import { pushRecentBoard } from "#/lib/use-recent-boards";
 import { api } from "../../../convex/_generated/api";
@@ -137,17 +131,9 @@ function BoardDetailPage() {
 		);
 	}
 
-	const email = session.user.email ?? "";
-	const name = session.user.name ?? email;
-	const initial = (name || email).charAt(0).toUpperCase();
-	const handleSignOut = () =>
-		void authClient.signOut().then(() => navigate({ to: "/" }));
-
 	return (
 		<BoardView
 			data={data}
-			userInitial={initial}
-			onSignOut={handleSignOut}
 			initialView={mapViewParam(viewParam)}
 			viewParam={viewParam}
 		/>
@@ -196,14 +182,10 @@ function subViewToBoardMode(v: SubViewId): BoardViewMode {
 // Calcule une nouvelle position pour insérer entre prev et next
 function BoardView({
 	data,
-	userInitial,
-	onSignOut,
 	initialView,
 	viewParam,
 }: {
 	data: BoardData;
-	userInitial: string;
-	onSignOut: () => void;
 	initialView: BoardViewMode;
 	viewParam: string | undefined;
 }) {
@@ -501,363 +483,111 @@ function BoardView({
 			: null;
 
 	return (
-		<div
-			className={`relative flex h-screen flex-col overflow-hidden ${colorBlind ? "colorblind" : ""}`}
+		<AppShell
+			active={{ route: "boards", boardId: board._id, boardView: subView }}
+			title={board.name}
 		>
-			{/* Image de fond plein écran (ou dégradé) */}
 			<div
-				className={`absolute inset-0 ${photo ? "" : `bg-gradient-to-br ${gradientClass}`}`}
-				style={backgroundStyle}
-			/>
-			{/* Voile sombre subtil pour lisibilité */}
-			<div className="absolute inset-0 bg-black/10" />
-
-			{/* Top bar Trello — couleur dynamique selon le board */}
-			<TrelloTopBar
-				userInitial={userInitial}
-				onSignOut={onSignOut}
-				dynamicBg={
-					board.color
-						? BOARD_GRADIENTS.find((g) => g.id === board.color)?.hex
-						: undefined
-				}
-			/>
-
-			{/* Sub-header du tableau (nom, étoile, partager) */}
-			<BoardSubHeader
-				board={board}
-				dynamicBg={
-					board.color
-						? BOARD_GRADIENTS.find((g) => g.id === board.color)?.hex
-						: undefined
-				}
-				filterQuery={filterQuery}
-				setFilterQuery={setFilterQuery}
-				filterLabelIds={filterLabelIds}
-				setFilterLabelIds={setFilterLabelIds}
-				colorBlind={colorBlind}
-				setColorBlind={setColorBlind}
-				hasActiveFilters={hasActiveFilters}
-			/>
-
-			{/* Nouveau sub-header Lume Éclat (Phase 3b) */}
-			<KanbanSubHeader
-				board={board}
-				cardCount={filteredCards.length}
-				subView={subView}
-				onSwitchView={switchView}
-				density={density}
-				onDensityChange={setDensity}
-				filterQuery={filterQuery}
-				setFilterQuery={setFilterQuery}
-				filterLabelIds={filterLabelIds}
-				setFilterLabelIds={setFilterLabelIds}
-				colorBlind={colorBlind}
-				setColorBlind={setColorBlind}
-				hasActiveFilters={hasActiveFilters}
-				onQuickAdd={() => void handleQuickAdd()}
-				canQuickAdd={localLists.length > 0}
-			/>
-
-			{/* Rendu selon le mode de vue */}
-			{view === "table" && (
-				<TableView
-					cards={filteredCards}
-					lists={sortedLists}
-					boardId={board._id}
-				/>
-			)}
-			{view === "calendar" && (
-				<CalendarView cards={filteredCards} lists={sortedLists} />
-			)}
-			{view === "timeline" && (
-				<TimelineView cards={filteredCards} />
-			)}
-
-			{/* Vue Kanban (par défaut) */}
-			{view === "kanban" && (
-				<DndContext
-					sensors={sensors}
-					collisionDetection={closestCorners}
-					onDragStart={handleDragStart}
-					onDragOver={handleDragOver}
-					onDragEnd={handleDragEnd}
-				>
-					<main className="relative z-10 flex-1 overflow-x-auto overflow-y-hidden px-3 pb-24 pt-2">
-						<SortableContext
-							items={listIds}
-							strategy={horizontalListSortingStrategy}
-						>
-							{/* `pr-3` après la dernière liste = gap droit visuel (style Trello) */}
-							<div
-								className={`board is-density-${density} flex h-full items-start gap-3 pr-3`}
-							>
-								{sortedLists.map((list) => (
-									<SortableListColumn
-										key={list._id}
-										list={list}
-										cards={filteredCards.filter((c) => c.listId === list._id)}
-									/>
-								))}
-								<AddListColumn
-									boardId={board._id}
-									hasLists={sortedLists.length > 0}
-								/>
-							</div>
-						</SortableContext>
-					</main>
-
-					{/* Overlay visuel pendant le drag */}
-					<DragOverlay>
-						{activeCard && (
-							<div className="rotate-2 opacity-90">
-								<CardItem card={activeCard} />
-							</div>
-						)}
-						{activeList && (
-							<div className="opacity-90">
-								<ListColumn
-									list={activeList}
-									cards={localCards.filter((c) => c.listId === activeList._id)}
-								/>
-							</div>
-						)}
-					</DragOverlay>
-				</DndContext>
-			)}
-
-			{/* Footer flottant style Trello (Boîte de réception, Agenda, Tableau, Changer) */}
-			<BoardFooter view={view} setView={setView} />
-		</div>
-	);
-}
-
-function TrelloTopBar({
-	userInitial,
-	onSignOut,
-	dynamicBg,
-}: {
-	userInitial: string;
-	onSignOut: () => void;
-	dynamicBg?: string;
-}) {
-	const headerStyle: React.CSSProperties = dynamicBg
-		? { backgroundColor: `${dynamicBg}E6` } // E6 = ~90% alpha
-		: {};
-	return (
-		<header
-			className={`relative z-20 flex h-12 shrink-0 items-center gap-2 px-3 backdrop-blur-md ${dynamicBg ? "" : "bg-black/30"}`}
-			style={headerStyle}
-		>
-			<div className="flex shrink-0 items-center gap-1">
-				<button
-					type="button"
-					className="rounded p-1.5 text-white/90 transition-colors hover:bg-white/10"
-					aria-label="Menu"
-				>
-					<Grid3x3 className="h-4 w-4" />
-				</button>
-				<Link to="/boards" className="flex items-center px-1.5 text-white">
-					<FlowboardLogoFull iconClassName="h-6 w-6" />
-				</Link>
-			</div>
-
-			<div className="mx-auto hidden w-full max-w-2xl md:block">
-				<GlobalSearch variant="dark" />
-			</div>
-
-			<div className="flex shrink-0 items-center gap-1">
-				<Button
-					size="sm"
-					className="h-8 bg-[#0c66e4] px-3 text-sm font-medium text-white hover:bg-[#0055cc]"
-				>
-					Créer
-				</Button>
-				<NotificationBell />
-				<button
-					type="button"
-					onClick={onSignOut}
-					className="ml-1 flex h-7 w-7 items-center justify-center rounded-full bg-[#0c66e4] text-xs font-semibold text-white transition-transform hover:scale-105"
-					aria-label="Profil / Déconnexion"
-					title="Cliquer pour se déconnecter"
-				>
-					{userInitial}
-				</button>
-			</div>
-		</header>
-	);
-}
-
-function BoardSubHeader({
-	board,
-	dynamicBg,
-	filterQuery,
-	setFilterQuery,
-	filterLabelIds,
-	setFilterLabelIds,
-	colorBlind,
-	setColorBlind,
-	hasActiveFilters,
-}: {
-	board: Doc<"boards">;
-	dynamicBg?: string;
-	filterQuery: string;
-	setFilterQuery: (v: string) => void;
-	filterLabelIds: Array<Id<"labels">>;
-	setFilterLabelIds: (v: Array<Id<"labels">>) => void;
-	colorBlind: boolean;
-	setColorBlind: (v: boolean) => void;
-	hasActiveFilters: boolean;
-}) {
-	const renameBoard = useMutation(api.boards.rename);
-	const toggleStar = useMutation(api.boards.toggleStar);
-	const boardLabels = useQuery(api.labels.listForBoard, { boardId: board._id });
-	const [boardMenuOpen, setBoardMenuOpen] = useState(false);
-	const [editing, setEditing] = useState(false);
-	const [name, setName] = useState(board.name);
-	const [filterOpen, setFilterOpen] = useState(false);
-	const [shareOpen, setShareOpen] = useState(false);
-	const starred = board.starred ?? false;
-	const members = useQuery(api.boardMembers.listMembers, {
-		boardId: board._id,
-	});
-	const memberCount = members?.length ?? 0;
-
-	useEffect(() => {
-		setName(board.name);
-	}, [board.name]);
-
-	async function handleSave() {
-		const trimmed = name.trim();
-		if (trimmed && trimmed !== board.name) {
-			await renameBoard({ boardId: board._id, name: trimmed });
-		} else {
-			setName(board.name);
-		}
-		setEditing(false);
-	}
-
-	const subHeaderStyle: React.CSSProperties = dynamicBg
-		? { backgroundColor: `${dynamicBg}B3` } // B3 = ~70% alpha (un peu plus transparent)
-		: {};
-
-	return (
-		<div
-			className={`relative z-10 flex h-12 shrink-0 items-center gap-2 px-3 backdrop-blur-sm ${dynamicBg ? "" : "bg-black/20"}`}
-			style={subHeaderStyle}
-		>
-			{editing ? (
-				<input
-					value={name}
-					onChange={(e) => setName(e.target.value)}
-					onBlur={() => void handleSave()}
-					onKeyDown={(e) => {
-						if (e.key === "Enter") void handleSave();
-						if (e.key === "Escape") {
-							setName(board.name);
-							setEditing(false);
-						}
-					}}
-					autoFocus
-					className="h-8 rounded border-0 bg-white px-2 text-base font-bold text-gray-900 outline-none ring-2 ring-sky-500"
-				/>
-			) : (
-				<button
-					type="button"
-					onClick={() => setEditing(true)}
-					className="rounded px-2 py-1 text-base font-bold text-white hover:bg-white/10"
-				>
-					{board.name}
-				</button>
-			)}
-
-			<button
-				type="button"
-				onClick={() => void toggleStar({ boardId: board._id })}
-				className="rounded p-1.5 text-white/90 transition-colors hover:bg-white/10"
-				aria-label="Marquer comme favori"
+				className={`board-page relative flex h-full flex-col overflow-hidden ${colorBlind ? "colorblind" : ""}`}
 			>
-				<Star
-					className={`h-4 w-4 ${starred ? "fill-yellow-400 text-yellow-400" : ""}`}
+				{/* Image de fond (ou dégradé) — limitée à la zone main, sous le shell */}
+				<div
+					className={`absolute inset-0 ${photo ? "" : `bg-gradient-to-br ${gradientClass}`}`}
+					style={backgroundStyle}
 				/>
-			</button>
+				{/* Voile sombre subtil pour lisibilité */}
+				<div className="absolute inset-0 bg-black/10" />
 
-			<div className="ml-auto flex items-center gap-1.5">
-				{/* Bouton Filtres */}
-				<Popover open={filterOpen} onOpenChange={setFilterOpen}>
-					<PopoverTrigger asChild>
-						<button
-							type="button"
-							className={`flex h-8 items-center gap-1.5 rounded px-2 text-sm text-white transition-colors hover:bg-white/10 ${hasActiveFilters ? "bg-white/20" : ""}`}
-							aria-label="Filtrer les cartes"
-						>
-							<Filter className="h-3.5 w-3.5" />
-							<span>Filtres</span>
-							{hasActiveFilters && (
-								<span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0c66e4] px-1 text-[10px] font-semibold text-white">
-									{filterLabelIds.length + (filterQuery.trim() ? 1 : 0)}
-								</span>
-							)}
-						</button>
-					</PopoverTrigger>
-					<PopoverContent className="w-80 p-3" align="end" side="bottom">
-						<FilterPopoverContent
-							query={filterQuery}
-							setQuery={setFilterQuery}
-							labelIds={filterLabelIds}
-							setLabelIds={setFilterLabelIds}
-							boardLabels={boardLabels ?? []}
-							colorBlind={colorBlind}
-							setColorBlind={setColorBlind}
-						/>
-					</PopoverContent>
-				</Popover>
-
-				<div className="flex items-center -space-x-2">
-					{(members ?? []).slice(0, 4).map((m) => (
-						<MemberAvatar key={m._id} name={m.userName} size={28} ring />
-					))}
-					{memberCount > 4 && (
-						<div className="z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#172b4d] text-[10px] font-semibold text-white">
-							+{memberCount - 4}
-						</div>
-					)}
-				</div>
-				<Button
-					size="sm"
-					variant="ghost"
-					onClick={() => setShareOpen(true)}
-					className="h-8 gap-1.5 rounded-md bg-white px-3 text-sm font-medium text-[#172b4d] hover:bg-white/90"
-				>
-					<Users className="h-3.5 w-3.5" />
-					Partager
-				</Button>
-				<ShareBoardDialog
-					boardId={board._id}
-					open={shareOpen}
-					onOpenChange={setShareOpen}
+				{/* Sub-header Lume Éclat (Phase 3b — remplace l'ancien BoardSubHeader) */}
+				<KanbanSubHeader
+					board={board}
+					cardCount={filteredCards.length}
+					subView={subView}
+					onSwitchView={switchView}
+					density={density}
+					onDensityChange={setDensity}
+					filterQuery={filterQuery}
+					setFilterQuery={setFilterQuery}
+					filterLabelIds={filterLabelIds}
+					setFilterLabelIds={setFilterLabelIds}
+					colorBlind={colorBlind}
+					setColorBlind={setColorBlind}
+					hasActiveFilters={hasActiveFilters}
+					onQuickAdd={() => void handleQuickAdd()}
+					canQuickAdd={localLists.length > 0}
 				/>
-				<Popover open={boardMenuOpen} onOpenChange={setBoardMenuOpen}>
-					<PopoverTrigger asChild>
-						<button
-							type="button"
-							className="rounded p-2 text-white/90 transition-colors hover:bg-white/10"
-							aria-label="Afficher le menu"
-						>
-							<MoreHorizontal className="h-4 w-4" />
-						</button>
-					</PopoverTrigger>
-					<PopoverContent
-						className="w-[360px] overflow-hidden p-0 shadow-xl"
-						align="end"
-						side="bottom"
-						sideOffset={8}
+
+				{/* Rendu selon le mode de vue */}
+				{view === "table" && (
+					<TableView
+						cards={filteredCards}
+						lists={sortedLists}
+						boardId={board._id}
+					/>
+				)}
+				{view === "calendar" && (
+					<CalendarView cards={filteredCards} lists={sortedLists} />
+				)}
+				{view === "timeline" && <TimelineView cards={filteredCards} />}
+
+				{/* Vue Kanban (par défaut) */}
+				{view === "kanban" && (
+					<DndContext
+						sensors={sensors}
+						collisionDetection={closestCorners}
+						onDragStart={handleDragStart}
+						onDragOver={handleDragOver}
+						onDragEnd={handleDragEnd}
 					>
-						<BoardMenu board={board} onClose={() => setBoardMenuOpen(false)} />
-					</PopoverContent>
-				</Popover>
+						<main className="relative z-10 flex-1 overflow-x-auto overflow-y-hidden px-3 pb-24 pt-2">
+							<SortableContext
+								items={listIds}
+								strategy={horizontalListSortingStrategy}
+							>
+								{/* `pr-3` après la dernière liste = gap droit visuel (style Trello) */}
+								<div
+									className={`board is-density-${density} flex h-full items-start gap-3 pr-3`}
+								>
+									{sortedLists.map((list) => (
+										<SortableListColumn
+											key={list._id}
+											list={list}
+											cards={filteredCards.filter((c) => c.listId === list._id)}
+										/>
+									))}
+									<AddListColumn
+										boardId={board._id}
+										hasLists={sortedLists.length > 0}
+									/>
+								</div>
+							</SortableContext>
+						</main>
+
+						{/* Overlay visuel pendant le drag */}
+						<DragOverlay>
+							{activeCard && (
+								<div className="rotate-2 opacity-90">
+									<CardItem card={activeCard} />
+								</div>
+							)}
+							{activeList && (
+								<div className="opacity-90">
+									<ListColumn
+										list={activeList}
+										cards={localCards.filter(
+											(c) => c.listId === activeList._id,
+										)}
+									/>
+								</div>
+							)}
+						</DragOverlay>
+					</DndContext>
+				)}
+
+				{/* Footer flottant style Trello (Boîte de réception, Agenda, Tableau, Changer) */}
+				<BoardFooter view={view} setView={setView} />
 			</div>
-		</div>
+		</AppShell>
 	);
 }
 
@@ -898,15 +628,31 @@ function KanbanSubHeader({
 	canQuickAdd: boolean;
 }) {
 	const toggleStar = useMutation(api.boards.toggleStar);
+	const renameBoard = useMutation(api.boards.rename);
 	const boardLabels = useQuery(api.labels.listForBoard, { boardId: board._id });
 	const members = useQuery(api.boardMembers.listMembers, {
 		boardId: board._id,
 	});
 	const [filterOpen, setFilterOpen] = useState(false);
+	const [shareOpen, setShareOpen] = useState(false);
+	const [menuOpen, setMenuOpen] = useState(false);
+	const [editingName, setEditingName] = useState(false);
+	const [nameDraft, setNameDraft] = useState(board.name);
+	useEffect(() => setNameDraft(board.name), [board.name]);
 	const starred = board.starred ?? false;
 	const memberCount = members?.length ?? 0;
 	const filterCount = filterLabelIds.length + (filterQuery.trim() ? 1 : 0);
 	const firstInitial = (board.name || "?").charAt(0).toUpperCase();
+
+	async function saveName() {
+		const trimmed = nameDraft.trim();
+		if (trimmed && trimmed !== board.name) {
+			await renameBoard({ boardId: board._id, name: trimmed });
+		} else {
+			setNameDraft(board.name);
+		}
+		setEditingName(false);
+	}
 
 	const views: Array<{
 		id: SubViewId;
@@ -929,9 +675,32 @@ function KanbanSubHeader({
 				<span className="kb-board-icon" aria-hidden="true">
 					{firstInitial}
 				</span>
-				<h1 className="kb-board-title" title={board.name}>
-					{board.name}
-				</h1>
+				{editingName ? (
+					<input
+						className="kb-board-title-input"
+						value={nameDraft}
+						onChange={(e) => setNameDraft(e.target.value)}
+						onBlur={() => void saveName()}
+						onKeyDown={(e) => {
+							if (e.key === "Enter") void saveName();
+							if (e.key === "Escape") {
+								setNameDraft(board.name);
+								setEditingName(false);
+							}
+						}}
+						// biome-ignore lint/a11y/noAutofocus: focus immédiat en mode édition
+						autoFocus
+					/>
+				) : (
+					<button
+						type="button"
+						className="kb-board-title kb-board-title--btn"
+						title="Renommer le tableau"
+						onClick={() => setEditingName(true)}
+					>
+						{board.name}
+					</button>
+				)}
 				<button
 					type="button"
 					onClick={() => void toggleStar({ boardId: board._id })}
@@ -1055,6 +824,41 @@ function KanbanSubHeader({
 						)}
 					</div>
 				)}
+
+				<button
+					type="button"
+					className="kb-ghost"
+					onClick={() => setShareOpen(true)}
+					aria-label="Partager le tableau"
+				>
+					<Users />
+					<span>Partager</span>
+				</button>
+				<ShareBoardDialog
+					boardId={board._id}
+					open={shareOpen}
+					onOpenChange={setShareOpen}
+				/>
+
+				<Popover open={menuOpen} onOpenChange={setMenuOpen}>
+					<PopoverTrigger asChild>
+						<button
+							type="button"
+							className="kb-ghost kb-ghost--icon"
+							aria-label="Menu du tableau"
+						>
+							<MoreHorizontal />
+						</button>
+					</PopoverTrigger>
+					<PopoverContent
+						className="w-[360px] overflow-hidden p-0 shadow-xl"
+						align="end"
+						side="bottom"
+						sideOffset={8}
+					>
+						<BoardMenu board={board} onClose={() => setMenuOpen(false)} />
+					</PopoverContent>
+				</Popover>
 
 				<button
 					type="button"

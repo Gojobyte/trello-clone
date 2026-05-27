@@ -642,3 +642,54 @@
     display: inline;
   }
 }
+
+/* ════════════════════════════════════════════════════
+   Phase 5 fix · Board page wrappée dans AppShell
+   - Titre cliquable (rename inline)
+   - Bouton ghost icône seul (menu "...")
+   - Variante full-bleed quand le board background est actif
+   ════════════════════════════════════════════════════ */
+
+/* Titre du board cliquable (hover subtil pour signaler l'édition) */
+.kb-board-title--btn {
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  transition: background 0.12s, border-color 0.12s;
+  text-align: left;
+}
+.kb-board-title--btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-c);
+}
+
+/* Variante icône seule pour les boutons ghost (menu …) */
+.kb-ghost--icon {
+  padding: 6px;
+  min-width: 32px;
+}
+.kb-ghost--icon span {
+  display: none;
+}
+
+/* Quand la page board est dans .gp-view (AppShell), le sub-header doit
+   rester visible sur le fond coloré du board, donc on lui donne un fond
+   semi-glass plus opaque qu'ailleurs. */
+.board-page .kb-subhead {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-c);
+}
+
+/* Le wrapper .board-page est en position:relative pour héberger les
+   couches absolues (background image + voile). Le sub-header et les
+   vues kanban sont au-dessus (z-index 1+). */
+.board-page > .kb-subhead,
+.board-page > main,
+.board-page > .board-footer-anchor {
+  position: relative;
+  z-index: 1;
+}
