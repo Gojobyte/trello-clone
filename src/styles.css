@@ -9,6 +9,10 @@
 @import './styles/pages-okr.css';
 @import './styles/pages-team.css';
 @import './styles/pages-account.css';
+@import './styles/public-landing.css';
+@import './styles/public-pricing.css';
+@import './styles/public-auth.css';
+@import './styles/public-secondary.css';
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 @import 'tw-animate-css';

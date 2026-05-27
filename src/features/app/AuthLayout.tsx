@@ -1,146 +1,90 @@
 import { Link } from "@tanstack/react-router";
+import { useTheme } from "#/lib/use-theme";
 import { BrandMark } from "./MarketingShell";
-import { Avatar } from "./primitives";
 
-// Mise en page partagée des écrans de connexion / inscription (design gestion-pro).
+// Mise en page partagée des écrans de connexion / inscription.
+// Split-screen Lume Éclat : gauche = formulaire, droite = pane visuel.
+// `switchLink` est conservé pour rétro-compat mais peut rester `undefined`
+// si le route gère son propre lien de bascule (login ↔ register).
 export function AuthLayout({
-	switchLink,
 	children,
+	visual,
+	switchLink: _switchLink,
 }: {
-	switchLink: React.ReactNode;
 	children: React.ReactNode;
+	visual: React.ReactNode;
+	switchLink?: React.ReactNode;
 }) {
+	const { theme, setTheme } = useTheme();
 	return (
-		<div className="auth">
-			<header className="auth-nav">
-				<Link to="/" className="row" style={{ gap: 8 }}>
-					<BrandMark />
-					<span style={{ fontWeight: 600, letterSpacing: "-0.01em" }}>
-						Flowboard
-					</span>
-				</Link>
-				{switchLink}
-			</header>
-
-			<div className="auth-grid">
-				<div className="auth-form-side">{children}</div>
-
-				<aside className="auth-aside">
-					<div className="auth-aside-inner">
-						<blockquote className="auth-quote">
-							<span
-								style={{
-									fontSize: 40,
-									color: "var(--accent)",
-									fontFamily: "Georgia, serif",
-									lineHeight: 0,
-									position: "relative",
-									top: 12,
-								}}
+		<div className="auth-grid">
+			<section className="auth-form-side">
+				<header className="auth-top">
+					<Link to="/" className="auth-top-brand" aria-label="Flowboard">
+						<BrandMark />
+						<span>Flowboard</span>
+					</Link>
+					<fieldset className="auth-theme-toggle" aria-label="Thème">
+						<legend className="sr-only">Thème</legend>
+						<button
+							type="button"
+							aria-label="Thème sombre"
+							aria-pressed={theme === "dark"}
+							onClick={() => setTheme("dark")}
+						>
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="1.8"
+								width="13"
+								height="13"
+								aria-hidden="true"
 							>
-								"
-							</span>
-							<span>
-								On a testé trois outils avant Flowboard. C'est le premier où le
-								board et le calendrier partagent vraiment les mêmes cartes. Ça
-								change tout pour notre standup du lundi.
-							</span>
-						</blockquote>
-						<div className="row" style={{ gap: 12, marginTop: 24 }}>
-							<Avatar user="u3" size="lg" />
-							<div>
-								<div style={{ fontWeight: 500, fontSize: 14 }}>
-									Claire Dubois
-								</div>
-								<div className="text-subtle text-sm">
-									Head of Product, Studio Nord
-								</div>
-							</div>
-						</div>
+								<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+							</svg>
+						</button>
+						<button
+							type="button"
+							aria-label="Thème clair"
+							aria-pressed={theme === "light"}
+							onClick={() => setTheme("light")}
+						>
+							<svg
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="1.8"
+								width="13"
+								height="13"
+								aria-hidden="true"
+							>
+								<circle cx="12" cy="12" r="4" />
+								<path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+							</svg>
+						</button>
+					</fieldset>
+				</header>
 
-						<div className="auth-aside-meta">
-							<div>
-								<div
-									className="font-mono"
-									style={{ fontSize: 28, fontWeight: 500 }}
-								>
-									124
-								</div>
-								<div className="text-subtle text-sm">équipes en beta</div>
-							</div>
-							<div>
-								<div
-									className="font-mono"
-									style={{ fontSize: 28, fontWeight: 500 }}
-								>
-									v1.2
-								</div>
-								<div className="text-subtle text-sm">depuis mars 2026</div>
-							</div>
-							<div>
-								<div
-									className="font-mono"
-									style={{ fontSize: 28, fontWeight: 500 }}
-								>
-									Discord
-								</div>
-								<div className="text-subtle text-sm">communauté ouverte</div>
-							</div>
-						</div>
+				<div className="auth-form-wrap">{children}</div>
+
+				<footer className="auth-bottom">
+					<div>© 2026 FLOWBOARD · LUME ATELIER</div>
+					<div>
+						<a href="/docs">RGPD</a> · <a href="/docs">CONDITIONS</a>
 					</div>
-				</aside>
-			</div>
+				</footer>
+			</section>
 
-			<style>{`
-        .auth {
-          min-height: 100vh; background: var(--bg);
-          display: flex; flex-direction: column;
-        }
-        .auth-nav {
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 20px 32px;
-        }
-        .auth-grid {
-          flex: 1;
-          display: grid; grid-template-columns: 1fr 1fr;
-          gap: 0;
-        }
-        .auth-form-side {
-          display: grid; place-items: center;
-          padding: 32px 32px 80px;
-        }
-        .auth-form { width: 100%; max-width: 380px; }
-        .auth-divider {
-          display: flex; align-items: center; gap: 12px;
-          margin: 24px 0; color: var(--text-subtle);
-          font-size: 11.5px; text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-        .auth-divider::before, .auth-divider::after {
-          content: ''; flex: 1; height: 1px; background: var(--border-c);
-        }
-        .auth-aside {
-          background: var(--bg-soft);
-          border-left: 1px solid var(--border-c);
-          padding: 48px;
-          display: flex; align-items: center;
-        }
-        .auth-aside-inner { max-width: 460px; }
-        .auth-quote {
-          font-size: 22px; line-height: 1.45;
-          letter-spacing: -0.01em; font-weight: 400;
-          margin: 0; color: var(--text);
-        }
-        .auth-aside-meta {
-          display: grid; grid-template-columns: repeat(3, 1fr);
-          gap: 24px; margin-top: 56px;
-          padding-top: 32px; border-top: 1px solid var(--border-c);
-        }
-        @media (max-width: 920px) {
-          .auth-grid { grid-template-columns: 1fr; }
-          .auth-aside { display: none; }
-        }
-      `}</style>
+			<aside className="auth-visual-side" aria-hidden="true">
+				<div className="auth-visual-orbs">
+					<div className="orb orb-1" />
+					<div className="orb orb-2" />
+					<div className="orb orb-3" />
+				</div>
+				<div className="auth-visual-grain" />
+				<div className="auth-visual-inner">{visual}</div>
+			</aside>
 		</div>
 	);
 }

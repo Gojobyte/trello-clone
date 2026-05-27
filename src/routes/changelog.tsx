@@ -1,486 +1,329 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Icon } from "#/features/app/Icon";
 import { MarketingShell, MkEyebrow } from "#/features/app/MarketingShell";
 
 export const Route = createFileRoute("/changelog")({
-  component: ChangelogRoute,
+	component: ChangelogRoute,
 });
 
 function ChangelogRoute() {
-  return (
-    <MarketingShell active="changelog">
-      <ChangelogContent />
-    </MarketingShell>
-  );
+	return (
+		<MarketingShell active="changelog">
+			<ChangelogContent />
+		</MarketingShell>
+	);
 }
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-type EntryKind = "new" | "improved" | "fixed" | "breaking";
+type Kind = "feature" | "fix" | "improvement";
 
-interface Entry {
-  kind: EntryKind;
-  text: string;
+interface ReleaseEntry {
+	version: string;
+	date: string; // affiché en mono uppercase (ex. "27 MAI 2026")
+	title: string;
+	summary: string;
+	kinds: Kind[]; // chips visibles dans le head
+	changes: string[]; // bullets
 }
 
-interface Cover {
-  tone: "accent" | "pro" | "major";
-  label: string;
-}
-
-interface Release {
-  version: string;
-  date: string;
-  title: string;
-  highlight?: boolean;
-  cover?: Cover;
-  entries: Entry[];
-}
-
-// ─── Données ──────────────────────────────────────────────────────────────────
-
-const RELEASES: Release[] = [
-  {
-    version: "v1.2",
-    date: "20 mai 2026",
-    title: "Command palette, Timeline en beta",
-    highlight: true,
-    cover: { tone: "accent", label: "NOUVEAU" },
-    entries: [
-      {
-        kind: "new",
-        text: "Command palette (⌘K) avec recherche sur cartes, boards et actions.",
-      },
-      {
-        kind: "new",
-        text: "Vue Timeline en beta — swimlanes par étiquette, drag pour replanifier (PRO).",
-      },
-      {
-        kind: "new",
-        text: "Section « Outils » dans la sidebar : Objectifs (OKR), Docs, Sprints, Charge équipe.",
-      },
-      {
-        kind: "improved",
-        text: "Modal de carte : onglet Sous-tâches avec progression visuelle.",
-      },
-      {
-        kind: "improved",
-        text: "Transitions entre les vues du board (Board → Calendrier → Timeline → Dashboard).",
-      },
-      {
-        kind: "fixed",
-        text: "Drag-and-drop sur Safari 17.4 : ne perd plus l'assigné lors du drop.",
-      },
-    ],
-  },
-  {
-    version: "v1.1",
-    date: "28 avril 2026",
-    title: "Vues personnelles & Inbox",
-    entries: [
-      {
-        kind: "new",
-        text: "Inbox unifié : mentions, assignations, échéances et activités dans un seul endroit.",
-      },
-      {
-        kind: "new",
-        text: "Vue « Mon jour » : vos cartes prioritaires du jour, retards en tête.",
-      },
-      {
-        kind: "new",
-        text: "Vues sauvegardées : filtres croisés inter-boards, partageables à l'équipe.",
-      },
-      {
-        kind: "improved",
-        text: "Recherche full-text sur les commentaires et descriptions.",
-      },
-      {
-        kind: "improved",
-        text: "Performance du board : -30% sur le temps de rendu initial.",
-      },
-      {
-        kind: "fixed",
-        text: "Notifications Slack : déduplication des notifications quand 2 personnes assignent en même temps.",
-      },
-    ],
-  },
-  {
-    version: "v1.0",
-    date: "15 mars 2026",
-    title: "Sortie publique — Flowboard est là",
-    cover: { tone: "major", label: "LANCEMENT" },
-    entries: [
-      {
-        kind: "new",
-        text: "Sortie publique après 4 mois de beta privée avec 40 équipes.",
-      },
-      {
-        kind: "new",
-        text: "Vues Board et Calendrier partageant les mêmes cartes.",
-      },
-      {
-        kind: "new",
-        text: "Cartes riches : étiquettes, sous-tâches, commentaires, pièces jointes, échéances.",
-      },
-      {
-        kind: "new",
-        text: "Workspaces avec membres, rôles et permissions par board.",
-      },
-      {
-        kind: "new",
-        text: "Intégrations Slack et GitHub (PR liées aux cartes).",
-      },
-      {
-        kind: "new",
-        text: "Plan Free (jusqu'à 3 boards) et Premium (boards illimités).",
-      },
-    ],
-  },
-  {
-    version: "v0.9",
-    date: "12 février 2026",
-    title: "Beta privée — itérations finales",
-    entries: [
-      {
-        kind: "new",
-        text: "Templates de boards : Sprint agile, Roadmap RICE, Recrutement.",
-      },
-      {
-        kind: "new",
-        text: "Importation depuis CSV et depuis Trello en un clic.",
-      },
-      {
-        kind: "improved",
-        text: "Composant carte refait pour être 2× plus rapide à manipuler.",
-      },
-      {
-        kind: "fixed",
-        text: "Cartes archivées qui réapparaissaient après un refresh.",
-      },
-    ],
-  },
-  {
-    version: "v0.8",
-    date: "20 janvier 2026",
-    title: "Beta privée — drag-and-drop",
-    entries: [
-      {
-        kind: "new",
-        text: "Drag-and-drop des cartes entre colonnes (et au sein d'une colonne).",
-      },
-      { kind: "new", text: "Filtres par assigné, étiquette, priorité." },
-      {
-        kind: "improved",
-        text: "Modal de carte : navigation clavier complète.",
-      },
-    ],
-  },
-  {
-    version: "v0.7",
-    date: "8 janvier 2026",
-    title: "Beta privée — ouverture des 40 premiers comptes",
-    cover: { tone: "pro", label: "BETA" },
-    entries: [
-      {
-        kind: "new",
-        text: "Beta privée ouverte à 40 équipes triées sur le volet (merci !).",
-      },
-      {
-        kind: "new",
-        text: "Boards, colonnes, cartes — les fondations sont là.",
-      },
-      { kind: "new", text: "Authentification email + Google." },
-    ],
-  },
-];
-
-const KIND_META: Record<
-  EntryKind,
-  { label: string; bg: string; fg: string }
-> = {
-  new: {
-    label: "Nouveau",
-    bg: "oklch(0.94 0.05 155)",
-    fg: "oklch(0.35 0.13 155)",
-  },
-  improved: {
-    label: "Amélioré",
-    bg: "oklch(0.94 0.05 240)",
-    fg: "oklch(0.35 0.13 240)",
-  },
-  fixed: {
-    label: "Corrigé",
-    bg: "var(--bg-soft)",
-    fg: "var(--text-muted)",
-  },
-  breaking: {
-    label: "Breaking",
-    bg: "oklch(0.94 0.05 25)",
-    fg: "oklch(0.42 0.16 25)",
-  },
+const KIND_META: Record<Kind, { label: string; className: string }> = {
+	feature: { label: "Feature", className: "pc-kind pc-kind--feature" },
+	fix: { label: "Fix", className: "pc-kind pc-kind--fix" },
+	improvement: {
+		label: "Amélioration",
+		className: "pc-kind pc-kind--improvement",
+	},
 };
 
-// ─── Sous-composant : placeholder visuel de capture ───────────────────────────
+// ─── Données ─────────────────────────────────────────────────────────────────
+// Ordre décroissant : la plus récente en premier.
 
-function ReleasePlaceholder({ version }: { version: string }) {
-  return (
-    <div
-      style={{
-        height: 280,
-        borderRadius: 8,
-        background: "var(--bg-sunken)",
-        border: "1px dashed var(--border)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "var(--text-subtle)",
-        fontSize: 13,
-        fontFamily: "var(--font-mono)",
-        letterSpacing: "0.02em",
-      }}
-    >
-      Capture release {version} · 1120×420
-    </div>
-  );
-}
-
-// ─── Contenu principal ────────────────────────────────────────────────────────
-
-type FilterId = "all" | EntryKind;
-
-const FILTER_OPTIONS: { id: FilterId; label: string }[] = [
-  { id: "all", label: "Tout" },
-  { id: "new", label: "Nouveau" },
-  { id: "improved", label: "Amélioré" },
-  { id: "fixed", label: "Corrigé" },
-  { id: "breaking", label: "Breaking" },
+const RELEASES: ReleaseEntry[] = [
+	{
+		version: "v1.4.0",
+		date: "27 MAI 2026",
+		title: "Vue Timeline en stable, command palette ⌘K",
+		summary:
+			"La timeline sort de beta. La command palette devient le centre de contrôle global de Flowboard.",
+		kinds: ["feature", "improvement"],
+		changes: [
+			"Timeline stable : swimlanes par étiquette, drag pour replanifier.",
+			"⌘K ouvre la palette partout, avec recherche sur cartes, boards et actions.",
+			"Onglet « Sous-tâches » avec progression visuelle sur la modal de carte.",
+			"Transitions soignées entre Board, Calendrier, Timeline et Dashboard.",
+		],
+	},
+	{
+		version: "v1.3.0",
+		date: "5 MAI 2026",
+		title: "Inbox unifié & vue « Mon jour »",
+		summary:
+			"Tout ce qui requiert votre attention en un seul écran. Le matin, vous savez quoi faire.",
+		kinds: ["feature"],
+		changes: [
+			"Inbox unifié : mentions, assignations, échéances, activités.",
+			"Vue « Mon jour » : cartes prioritaires du jour, retards en tête.",
+			"Vues sauvegardées partageables à l'équipe.",
+			"Recherche full-text sur commentaires et descriptions.",
+		],
+	},
+	{
+		version: "v1.2.1",
+		date: "18 AVRIL 2026",
+		title: "Performances et accessibilité",
+		summary:
+			"Une release plus calme, beaucoup de polish — vous devriez sentir Flowboard plus rapide.",
+		kinds: ["improvement", "fix"],
+		changes: [
+			"Temps de rendu initial du board réduit de 30 %.",
+			"Drag-and-drop sur Safari 17.4 : l'assigné est conservé au drop.",
+			"Navigation clavier complète sur la modal de carte.",
+			"Contrastes WCAG AA sur tous les badges et chips.",
+		],
+	},
+	{
+		version: "v1.2.0",
+		date: "2 AVRIL 2026",
+		title: "Section « Outils » : Objectifs, Docs, Sprints, Charge équipe",
+		summary:
+			"Quatre nouvelles vues outils dans la sidebar, alimentées par les mêmes cartes.",
+		kinds: ["feature"],
+		changes: [
+			"Objectifs (OKR) : suivi trimestriel lié aux cartes.",
+			"Docs : wiki léger relié aux boards.",
+			"Sprints : planning, burndown, vélocité.",
+			"Charge équipe : visualisation de la disponibilité par personne.",
+		],
+	},
+	{
+		version: "v1.1.0",
+		date: "28 MARS 2026",
+		title: "Filtres croisés et étiquettes intelligentes",
+		summary:
+			"Croisez vos filtres entre boards. Les étiquettes apprennent de votre usage.",
+		kinds: ["feature", "improvement"],
+		changes: [
+			"Filtres inter-boards : « tout ce qui est urgent et m'est assigné ».",
+			"Suggestions d'étiquettes basées sur le titre de la carte.",
+			"Notifications Slack dédupliquées en cas d'assignations simultanées.",
+		],
+	},
+	{
+		version: "v1.0.2",
+		date: "20 MARS 2026",
+		title: "Stabilité post-lancement",
+		summary: "Quelques cas marginaux corrigés grâce aux premiers retours.",
+		kinds: ["fix"],
+		changes: [
+			"Cartes archivées qui réapparaissaient après un refresh.",
+			"Erreur 500 lors de la duplication de boards de plus de 200 cartes.",
+			"Synchro temps réel sur Firefox 124 fiabilisée.",
+		],
+	},
+	{
+		version: "v1.0.0",
+		date: "15 MARS 2026",
+		title: "Sortie publique — Flowboard est là",
+		summary:
+			"Après 4 mois de beta privée avec 40 équipes, Flowboard ouvre ses portes.",
+		kinds: ["feature"],
+		changes: [
+			"Vues Board et Calendrier partagent les mêmes cartes.",
+			"Cartes riches : étiquettes, sous-tâches, commentaires, pièces jointes, échéances.",
+			"Workspaces avec rôles et permissions par board.",
+			"Intégrations Slack et GitHub natives.",
+			"Plans Free (jusqu'à 3 boards) et Premium (illimité).",
+		],
+	},
+	{
+		version: "v0.9.0",
+		date: "12 FÉVRIER 2026",
+		title: "Beta privée — itérations finales",
+		summary:
+			"Templates, imports, et un composant de carte deux fois plus rapide.",
+		kinds: ["feature", "improvement"],
+		changes: [
+			"Templates : Sprint agile, Roadmap RICE, Recrutement.",
+			"Imports en un clic depuis Trello et depuis un CSV.",
+			"Composant carte refait : 2× plus rapide à manipuler.",
+		],
+	},
 ];
 
+// ─── Filtre ──────────────────────────────────────────────────────────────────
+
+type Filter = "all" | Kind;
+
+const FILTERS: { id: Filter; label: string }[] = [
+	{ id: "all", label: "Tout" },
+	{ id: "feature", label: "Features" },
+	{ id: "fix", label: "Fixes" },
+	{ id: "improvement", label: "Améliorations" },
+];
+
+// ─── Composant ───────────────────────────────────────────────────────────────
+
 function ChangelogContent() {
-  const [filter, setFilter] = useState<FilterId>("all");
+	const [filter, setFilter] = useState<Filter>("all");
 
-  const visible = RELEASES.map((r) => ({
-    ...r,
-    entries:
-      filter === "all"
-        ? r.entries
-        : r.entries.filter((e) => e.kind === filter),
-  })).filter((r) => r.entries.length > 0);
+	const visible = useMemo(() => {
+		if (filter === "all") return RELEASES;
+		return RELEASES.filter((r) => r.kinds.includes(filter));
+	}, [filter]);
 
-  return (
-    <>
-      {/* Hero */}
-      <section className="mk-hero" style={{ paddingBottom: 48 }}>
-        <MkEyebrow>Changelog</MkEyebrow>
-        <h1 className="mk-h1">
-          Ce qui change,
-          <br />
-          <span style={{ color: "var(--text-subtle)" }}>
-            semaine après semaine.
-          </span>
-        </h1>
-        <p className="mk-sub">
-          On expédie environ une release par mois. Pas de pop-up « Quoi de
-          neuf ? », juste cette page.
-        </p>
-        <div className="row" style={{ marginTop: 24, gap: 8 }}>
-          <button className="btn btn--outline btn--sm">
-            <Icon name="bell" size={12} /> S&apos;abonner par email
-          </button>
-          <button className="btn btn--ghost btn--sm">RSS</button>
-          <span
-            className="text-subtle text-xs"
-            style={{ marginLeft: 12 }}
-          >
-            Mis à jour le 20 mai 2026
-          </span>
-        </div>
-      </section>
+	// « kind dominant » : celui qui colore le point de la timeline.
+	const dominantKind = (r: ReleaseEntry): Kind => {
+		if (r.kinds.includes("feature")) return "feature";
+		if (r.kinds.includes("improvement")) return "improvement";
+		return "fix";
+	};
 
-      {/* Filter chips */}
-      <section
-        className="mk-section"
-        style={{ paddingTop: 0, paddingBottom: 24 }}
-      >
-        <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
-          {FILTER_OPTIONS.map(({ id, label }) => (
-            <button
-              key={id}
-              onClick={() => setFilter(id)}
-              style={{
-                padding: "4px 12px",
-                borderRadius: 100,
-                border: "1px solid",
-                background:
-                  filter === id ? "var(--text)" : "var(--surface)",
-                color:
-                  filter === id ? "var(--bg)" : "var(--text-muted)",
-                borderColor:
-                  filter === id ? "var(--text)" : "var(--border)",
-                fontSize: 12.5,
-                fontWeight: 500,
-                cursor: "pointer",
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </section>
+	return (
+		<>
+			{/* Hero */}
+			<section className="mk-hero" style={{ paddingBottom: 32 }}>
+				<MkEyebrow>Changelog</MkEyebrow>
+				<h1 className="mk-h1">
+					Tout ce qui a <em className="serif-italic">changé</em>.
+				</h1>
+				<p className="mk-sub">
+					Une release par mois, parfois plus. Pas de pop-up « Quoi de neuf ? »,
+					juste cette page — datée, signée, lisible.
+				</p>
+				<div className="row" style={{ marginTop: 22, gap: 8 }}>
+					<button type="button" className="btn btn--outline btn--sm">
+						<Icon name="bell" size={12} /> S&apos;abonner par email
+					</button>
+					<button type="button" className="btn btn--ghost btn--sm">
+						RSS
+					</button>
+					<span className="text-subtle text-xs" style={{ marginLeft: 12 }}>
+						Mis à jour le 27 mai 2026
+					</span>
+				</div>
+			</section>
 
-      {/* Timeline verticale */}
-      <section
-        className="mk-section"
-        style={{ paddingTop: 0, paddingBottom: 80 }}
-      >
-        <div className="cl-list">
-          {visible.map((r, i) => (
-            <article key={r.version} className="cl-item">
-              {/* Méta sticky */}
-              <aside className="cl-meta">
-                <div className="cl-version">{r.version}</div>
-                <div className="text-subtle text-sm">{r.date}</div>
-                {r.cover && (
-                  <span
-                    className="cl-tag"
-                    style={{
-                      background:
-                        r.cover.tone === "accent"
-                          ? "var(--accent)"
-                          : r.cover.tone === "pro"
-                            ? "var(--accent-soft)"
-                            : "var(--text)",
-                      color:
-                        r.cover.tone === "pro"
-                          ? "var(--accent-text)"
-                          : "white",
-                    }}
-                  >
-                    {r.cover.label}
-                  </span>
-                )}
-              </aside>
+			{/* Filtres */}
+			<section
+				className="mk-section"
+				style={{ paddingTop: 0, paddingBottom: 16 }}
+			>
+				<div
+					className="ps-chip-row"
+					role="tablist"
+					aria-label="Filtrer le changelog"
+				>
+					{FILTERS.map(({ id, label }) => (
+						<button
+							key={id}
+							type="button"
+							role="tab"
+							aria-selected={filter === id}
+							className={`ps-chip${filter === id ? " is-active" : ""}`}
+							onClick={() => setFilter(id)}
+						>
+							{label}
+						</button>
+					))}
+				</div>
+			</section>
 
-              {/* Corps */}
-              <div className="cl-body">
-                <h2 className="cl-title">{r.title}</h2>
-                {r.highlight && (
-                  <div className="cl-highlight">
-                    <ReleasePlaceholder version={r.version} />
-                  </div>
-                )}
-                <ul className="cl-entries">
-                  {r.entries.map((e, j) => {
-                    const k = KIND_META[e.kind];
-                    return (
-                      <li key={j}>
-                        <span
-                          className="cl-kind"
-                          style={{ background: k.bg, color: k.fg }}
-                        >
-                          {k.label}
-                        </span>
-                        <span>{e.text}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-                {i < visible.length - 1 && (
-                  <div
-                    className="divider"
-                    style={{ margin: "32px 0 0" }}
-                  />
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+			{/* Timeline */}
+			<section
+				className="mk-section"
+				style={{ paddingTop: 8, paddingBottom: 64 }}
+			>
+				{visible.length === 0 ? (
+					<div className="ps-empty">
+						<p className="ps-empty-title">
+							Aucune note dans cette catégorie pour le moment.
+						</p>
+						<p className="ps-empty-sub">
+							Choisissez « Tout » pour voir l&apos;ensemble de
+							l&apos;historique.
+						</p>
+					</div>
+				) : (
+					<>
+						<ol className="pc-list">
+							{visible.map((r) => (
+								<li
+									key={r.version}
+									className="pc-entry"
+									data-kind={dominantKind(r)}
+								>
+									<header className="pc-entry-head">
+										<span className="pc-date">{r.date}</span>
+										<span className="pc-version">{r.version}</span>
+										<span className="pc-kind-row">
+											{r.kinds.map((k) => {
+												const meta = KIND_META[k];
+												return (
+													<span key={k} className={meta.className}>
+														{meta.label}
+													</span>
+												);
+											})}
+										</span>
+									</header>
+									<h2 className="pc-title">{r.title}</h2>
+									<p className="pc-body">{r.summary}</p>
+									<ul className="pc-changes">
+										{r.changes.map((c) => (
+											<li key={c}>{c}</li>
+										))}
+									</ul>
+								</li>
+							))}
+						</ol>
 
-      {/* CTA */}
-      <section className="mk-cta">
-        <h2
-          style={{
-            fontSize: 32,
-            margin: 0,
-            letterSpacing: "-0.02em",
-            fontWeight: 500,
-          }}
-        >
-          On expédie en public.
-        </h2>
-        <p
-          className="text-muted"
-          style={{ fontSize: 15, marginTop: 12, maxWidth: 460 }}
-        >
-          Roadmap publique, votes ouverts, et un Discord pour discuter avec
-          l&apos;équipe produit.
-        </p>
-        <div className="row" style={{ gap: 10, marginTop: 24 }}>
-          <Link to="/roadmap" className="btn btn--primary btn--lg">
-            Voir la roadmap
-          </Link>
-          <button className="btn btn--outline btn--lg">
-            Rejoindre le Discord
-          </button>
-        </div>
-      </section>
+						<div className="pc-load-more">
+							<button
+								type="button"
+								className="btn btn--outline btn--sm"
+								onClick={() => {
+									// TODO : pagination réelle quand la liste passera côté Convex.
+									// eslint-disable-next-line no-console
+									console.log("[changelog] load more");
+								}}
+							>
+								Charger plus →
+							</button>
+						</div>
+					</>
+				)}
+			</section>
 
-      <style>{`
-        .cl-list { display: flex; flex-direction: column; gap: 0; }
-        .cl-item {
-          display: grid; grid-template-columns: 200px 1fr;
-          gap: 48px; padding: 32px 0;
-        }
-        .cl-item:first-child { padding-top: 0; }
-        .cl-meta { position: sticky; top: 88px; align-self: start; }
-        .cl-version {
-          font-size: 22px; font-weight: 500;
-          font-family: var(--font-mono);
-          letter-spacing: -0.01em;
-          margin-bottom: 4px;
-        }
-        .cl-tag {
-          display: inline-block; margin-top: 10px;
-          padding: 2px 8px; border-radius: 100px;
-          font-size: 10.5px; font-weight: 500;
-          letter-spacing: 0.03em;
-        }
-        .cl-body { min-width: 0; }
-        .cl-title {
-          font-size: 24px; font-weight: 500;
-          letter-spacing: -0.015em;
-          margin: 0 0 20px;
-          line-height: 1.2;
-        }
-        .cl-highlight {
-          background: var(--bg-soft); border: 1px solid var(--border);
-          border-radius: 12px; padding: 12px;
-          margin-bottom: 24px;
-        }
-        .cl-entries {
-          list-style: none; padding: 0; margin: 0;
-          display: flex; flex-direction: column; gap: 12px;
-        }
-        .cl-entries li {
-          display: grid; grid-template-columns: 90px 1fr;
-          gap: 14px; font-size: 14px; line-height: 1.55;
-          align-items: baseline;
-        }
-        .cl-kind {
-          font-size: 10.5px; font-weight: 500;
-          padding: 2px 8px; border-radius: 4px;
-          text-transform: uppercase; letter-spacing: 0.04em;
-          text-align: center;
-        }
-        @media (max-width: 880px) {
-          .cl-item { grid-template-columns: 1fr; gap: 16px; }
-          .cl-meta { position: static; }
-          .cl-entries li { grid-template-columns: 1fr; gap: 4px; }
-          .cl-kind { justify-self: start; }
-        }
-      `}</style>
-    </>
-  );
+			{/* CTA */}
+			<section className="mk-cta">
+				<h2
+					style={{
+						fontSize: 32,
+						margin: 0,
+						letterSpacing: "-0.02em",
+						fontWeight: 500,
+					}}
+				>
+					On expédie en <em className="serif-italic">public</em>.
+				</h2>
+				<p
+					className="text-muted"
+					style={{ fontSize: 15, marginTop: 12, maxWidth: 460 }}
+				>
+					Roadmap publique, votes ouverts, Discord pour échanger avec
+					l&apos;équipe produit. Pas de bouton « Contacter le commercial ».
+				</p>
+				<div className="row" style={{ gap: 10, marginTop: 24 }}>
+					<Link to="/roadmap" className="btn btn--primary btn--lg">
+						Voir la roadmap
+					</Link>
+					<button type="button" className="btn btn--outline btn--lg">
+						Rejoindre le Discord
+					</button>
+				</div>
+			</section>
+		</>
+	);
 }

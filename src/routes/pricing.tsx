@@ -1,513 +1,793 @@
-import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "#/features/app/Icon";
 import { MarketingShell } from "#/features/app/MarketingShell";
 
 export const Route = createFileRoute("/pricing")({
-  component: PricingRoute,
+	component: PricingRoute,
 });
 
 function PricingRoute() {
-  return (
-    <MarketingShell active="pricing">
-      <PricingContent />
-    </MarketingShell>
-  );
+	return (
+		<MarketingShell active="pricing">
+			<PricingContent />
+		</MarketingShell>
+	);
 }
 
-type FeatureEntry = [string, boolean, { strong?: boolean }?];
+// ─────────────────────────────────────────────────────────────
+// Quiz state model
+// ─────────────────────────────────────────────────────────────
+type Size = "solo" | "small" | "large";
+type Usage = "kanban" | "multi" | "reporting";
+type Security = "standard" | "sso" | "custom";
+type PlanId = "solo" | "studio" | "maison";
+type Billing = "month" | "year";
 
-interface Plan {
-  name: string;
-  tag: string;
-  price: { m: number; y: number } | string;
-  cta: string;
-  ctaStyle: string;
-  featured?: boolean;
-  features: FeatureEntry[];
+function useRevealOnScroll() {
+	useEffect(() => {
+		if (typeof IntersectionObserver === "undefined") return;
+		const targets = document.querySelectorAll(
+			".pricing .reveal, .pricing .reveal-stagger",
+		) as NodeListOf<HTMLElement>;
+		const io = new IntersectionObserver(
+			(entries) => {
+				for (const e of entries) {
+					if (e.isIntersecting) {
+						e.target.classList.add("is-on");
+						io.unobserve(e.target);
+					}
+				}
+			},
+			{ threshold: 0.12, rootMargin: "0px 0px -8% 0px" },
+		);
+		targets.forEach((t) => {
+			io.observe(t);
+		});
+		return () => io.disconnect();
+	}, []);
 }
-
-const PLANS: Plan[] = [
-  {
-    name: "Free",
-    tag: "Pour démarrer",
-    price: { m: 0, y: 0 },
-    cta: "Commencer gratuitement",
-    ctaStyle: "outline",
-    features: [
-      ["Boards illimités, jusqu'à 3 actifs", true],
-      ["Vue Board + Calendrier", true],
-      ["Cartes : checklist, étiquettes, échéances", true],
-      ["Jusqu'à 10 membres par workspace", true],
-      ["Historique sur 14 jours", true],
-      ["Vue Timeline & Dashboard", false],
-      ["Automatisations", false],
-      ["Assistant IA", false],
-      ["Champs personnalisés", false],
-      ["SSO & permissions avancées", false],
-    ],
-  },
-  {
-    name: "Premium",
-    tag: "Pour les équipes qui livrent",
-    price: { m: 12, y: 9 },
-    cta: "Démarrer l'essai",
-    ctaStyle: "accent",
-    featured: true,
-    features: [
-      ["Tout du plan Free, plus :", true, { strong: true }],
-      ["Boards et membres illimités", true],
-      ["Vue Timeline + Dashboard", true],
-      ["Automatisations no-code", true],
-      ["Assistant IA (génération, division, résumé)", true],
-      ["Champs personnalisés illimités", true],
-      ["Historique sur 12 mois", true],
-      ["Intégrations Slack, GitHub, Figma, Linear", true],
-      ["Modèles d'équipe & templates avancés", true],
-      ["Support prioritaire", true],
-    ],
-  },
-  {
-    name: "Entreprise",
-    tag: "Pour les organisations",
-    price: "Sur devis",
-    cta: "Nous contacter",
-    ctaStyle: "outline",
-    features: [
-      ["Tout du plan Premium, plus :", true, { strong: true }],
-      ["SSO SAML & SCIM", true],
-      ["Permissions granulaires par board", true],
-      ["Audit log & rétention paramétrable", true],
-      ["Contrat DPA, BAA, MSA personnalisé", true],
-      ["SLA 99.99% garanti", true],
-      ["Customer Success dédié", true],
-      ["On-boarding équipe sur place", true],
-      ["Domaines multiples", true],
-      ["Sandbox de pré-production", true],
-    ],
-  },
-];
-
-const COMPARE_ROWS: string[][] = [
-  ["Boards actifs", "3", "Illimités", "Illimités"],
-  ["Membres par workspace", "10", "Illimités", "Illimités"],
-  ["Historique", "14 jours", "12 mois", "Paramétrable"],
-  ["Vues", "Board + Calendrier", "Toutes (+ Timeline, Dashboard)", "Toutes"],
-  ["Automatisations", "—", "100 actions / mois", "Illimitées"],
-  ["Champs personnalisés", "—", "Illimités", "Illimités"],
-  ["Assistant IA", "—", "✓", "✓"],
-  ["SSO SAML / SCIM", "—", "—", "✓"],
-  ["Audit log", "—", "—", "✓"],
-  ["SLA", "—", "99.9%", "99.99%"],
-  ["Support", "Communauté", "Email prioritaire", "CSM dédié"],
-];
-
-const FAQ_ITEMS: [string, string][] = [
-  [
-    "Puis-je changer de plan à tout moment ?",
-    "Oui. Le passage à Premium est immédiat ; la rétrogradation prend effet à la fin de la période en cours. Aucun frais caché.",
-  ],
-  [
-    "Que se passe-t-il à la fin de l'essai Premium ?",
-    "L'essai dure 14 jours. À la fin, votre workspace revient automatiquement au plan Free — vous gardez vos données, seules les fonctionnalités Premium se désactivent.",
-  ],
-  [
-    "Y a-t-il une remise pour les associations et l'éducation ?",
-    "Oui — 50% sur Premium pour les associations à but non lucratif et les établissements éducatifs. Contactez-nous avec un justificatif.",
-  ],
-  [
-    "Comment est facturé Premium ?",
-    "Par utilisateur actif et par mois. Vous pouvez ajouter ou retirer des membres à tout moment, la facture est ajustée au prorata.",
-  ],
-  [
-    "Mes données restent-elles privées ?",
-    "Oui. Vos données ne sont jamais utilisées pour entraîner des modèles tiers. Hébergement en France et en Allemagne, conforme RGPD.",
-  ],
-];
 
 function PricingContent() {
-  const [yearly, setYearly] = useState(true);
-  const navigate = useNavigate();
+	useRevealOnScroll();
+	const navigate = useNavigate();
 
-  return (
-    <div className="pricing">
-      {/* Hero */}
-      <section
-        style={{
-          maxWidth: 1120,
-          margin: "0 auto",
-          padding: "80px 32px 24px",
-          textAlign: "center",
-        }}
-      >
-        <div className="landing-eyebrow" style={{ margin: "0 auto 20px" }}>
-          Tarifs
-        </div>
-        <h1
-          style={{
-            fontSize: 64,
-            lineHeight: 1,
-            letterSpacing: "-0.03em",
-            fontWeight: 500,
-            margin: "0 0 16px",
-          }}
-        >
-          Simple. Équitable.
-          <br />
-          <span style={{ color: "var(--text-subtle)" }}>Sans surprise.</span>
-        </h1>
-        <p
-          className="text-muted"
-          style={{ fontSize: 17, maxWidth: 540, margin: "0 auto" }}
-        >
-          Commencez gratuitement, passez en Premium quand votre équipe a besoin
-          des vues avancées et de l'automatisation.
-        </p>
+	// Quiz
+	const [size, setSize] = useState<Size | null>(null);
+	const [usage, setUsage] = useState<Usage | null>(null);
+	const [security, setSecurity] = useState<Security | null>(null);
 
-        {/* Toggle Mensuel / Annuel */}
-        <div
-          className="row"
-          style={{
-            justifyContent: "center",
-            marginTop: 32,
-            gap: 0,
-            padding: 3,
-            background: "var(--bg-soft)",
-            borderRadius: 100,
-            display: "inline-flex",
-            border: "1px solid var(--border)",
-          }}
-        >
-          {(
-            [
-              { id: false, label: "Mensuel" },
-              { id: true, label: "Annuel", badge: "−25%" },
-            ] as { id: boolean; label: string; badge?: string }[]
-          ).map((t) => (
-            <button
-              key={String(t.id)}
-              onClick={() => setYearly(t.id)}
-              className="row"
-              style={{
-                gap: 8,
-                padding: "6px 16px",
-                border: "none",
-                borderRadius: 100,
-                background:
-                  yearly === t.id ? "var(--surface)" : "transparent",
-                boxShadow: yearly === t.id ? "var(--shadow-sm)" : "none",
-                fontSize: 13,
-                fontWeight: 500,
-                color:
-                  yearly === t.id ? "var(--text)" : "var(--text-muted)",
-                cursor: "pointer",
-              }}
-            >
-              {t.label}
-              {t.badge && (
-                <span
-                  style={{
-                    fontSize: 10,
-                    padding: "1px 6px",
-                    borderRadius: 100,
-                    background: "var(--accent-soft)",
-                    color: "var(--accent-text)",
-                    fontFamily: "var(--font-mono)",
-                    fontWeight: 500,
-                  }}
-                >
-                  {t.badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </section>
+	// Pricing controls
+	const [billing, setBilling] = useState<Billing>("month");
+	const [members, setMembers] = useState(6);
 
-      {/* Plans grid + comparison + FAQ */}
-      <section
-        style={{ maxWidth: 1120, margin: "0 auto", padding: "32px 32px 96px" }}
-      >
-        {/* Cards */}
-        <div className="pricing-grid">
-          {PLANS.map((p, i) => {
-            const numericPrice =
-              typeof p.price !== "string" ? p.price : null;
-            return (
-              <div
-                key={i}
-                className={`pricing-card${p.featured ? " pricing-card--featured" : ""}`}
-              >
-                {p.featured && (
-                  <div className="pricing-featured-tag">
-                    <Icon name="spark" size={11} /> Recommandé
-                  </div>
-                )}
-                <div className="pricing-head">
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontSize: 20,
-                      fontWeight: 500,
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    {p.name}
-                  </h3>
-                  <p className="text-muted text-sm" style={{ margin: "4px 0 0" }}>
-                    {p.tag}
-                  </p>
-                </div>
+	const recommended: PlanId | null = useMemo(() => {
+		if (size === null || usage === null || security === null) return null;
+		if (
+			security === "sso" ||
+			security === "custom" ||
+			size === "large" ||
+			usage === "reporting"
+		) {
+			return "maison";
+		}
+		if (size === "solo" && usage === "kanban" && security === "standard") {
+			return "solo";
+		}
+		return "studio";
+	}, [size, usage, security]);
 
-                <div className="pricing-price">
-                  {numericPrice === null ? (
-                    <span
-                      style={{
-                        fontSize: 36,
-                        fontWeight: 500,
-                        letterSpacing: "-0.02em",
-                      }}
-                    >
-                      {p.price as string}
-                    </span>
-                  ) : (
-                    <>
-                      <span className="pricing-currency">€</span>
-                      <span className="pricing-amount">
-                        {yearly ? numericPrice.y : numericPrice.m}
-                      </span>
-                      <span className="pricing-period">
-                        {numericPrice.m === 0 ? "" : "/ utilisateur / mois"}
-                      </span>
-                    </>
-                  )}
-                  {yearly && numericPrice !== null && numericPrice.y > 0 && (
-                    <div
-                      className="text-subtle text-xs"
-                      style={{ marginTop: 4 }}
-                    >
-                      Facturé annuellement · {numericPrice.y * 12}€/an
-                    </div>
-                  )}
-                </div>
+	const filledCount =
+		(size !== null ? 1 : 0) +
+		(usage !== null ? 1 : 0) +
+		(security !== null ? 1 : 0);
 
-                <button
-                  className={`btn btn--${p.ctaStyle} btn--lg`}
-                  style={{ justifyContent: "center", marginTop: 8 }}
-                  onClick={() => {
-                    if (p.name === "Free") void navigate({ to: "/register" });
-                  }}
-                >
-                  {p.cta}
-                </button>
+	function priceFor(plan: "studio" | "maison", b: Billing) {
+		const base = plan === "studio" ? 9 : 19;
+		return b === "year" ? +(base * 0.8).toFixed(1) : base;
+	}
 
-                <div className="divider" />
+	const sliderPct = ((members - 1) / 49) * 100;
+	const studioPrice = priceFor("studio", billing);
+	const studioTotal = Math.round(studioPrice * members);
+	const maisonPrice = priceFor("maison", billing);
+	const maisonTotal = members >= 16 ? Math.round(maisonPrice * members) : null;
+	const billedLabel =
+		billing === "year" ? "facturation annuelle" : "facturation mensuelle";
 
-                <ul className="pricing-features">
-                  {p.features.map((f, j) => (
-                    <li key={j} style={{ fontWeight: f[2]?.strong ? 500 : 400 }}>
-                      {f[1] ? (
-                        <Icon
-                          name="check"
-                          size={13}
-                          stroke={2}
-                          style={{ color: "var(--accent)", flex: "none" }}
-                        />
-                      ) : (
-                        <Icon
-                          name="x"
-                          size={13}
-                          stroke={1.6}
-                          style={{
-                            color: "var(--text-subtle)",
-                            flex: "none",
-                          }}
-                        />
-                      )}
-                      <span
-                        style={{
-                          color: f[1] ? "var(--text)" : "var(--text-subtle)",
-                        }}
-                      >
-                        {f[0]}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
+	return (
+		<div className="pricing">
+			<div className="pricing-orbs" aria-hidden="true">
+				<div className="pricing-orb pricing-orb--amber-tl" />
+				<div className="pricing-orb pricing-orb--plum-br" />
+			</div>
 
-        {/* Comparison table */}
-        <section style={{ marginTop: 96 }}>
-          <h2
-            className="text-2xl"
-            style={{
-              marginBottom: 32,
-              textAlign: "center",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Comparer en détail
-          </h2>
-          <div className="pricing-compare">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: "40%" }}></th>
-                  <th>Free</th>
-                  <th style={{ color: "var(--accent-text)" }}>Premium</th>
-                  <th>Entreprise</th>
-                </tr>
-              </thead>
-              <tbody>
-                {COMPARE_ROWS.map((row, i) => (
-                  <tr key={i}>
-                    {row.map((cell, j) => (
-                      <td key={j}>
-                        {cell === "✓" ? (
-                          <Icon
-                            name="check"
-                            size={14}
-                            stroke={2}
-                            style={{ color: "var(--accent)" }}
-                          />
-                        ) : cell === "—" ? (
-                          <span style={{ color: "var(--text-subtle)" }}>
-                            —
-                          </span>
-                        ) : (
-                          cell
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+			{/* HERO */}
+			<section className="pricing-hero">
+				<div className="pricing-shell">
+					<div className="eyebrow reveal">
+						<span className="pricing-ping" />
+						TARIFS · TRANSPARENTS · SANS PIÈGE
+					</div>
+					<h1 className="reveal">
+						Trois plans. <em>Aucune surprise.</em>
+					</h1>
+					<p className="sub reveal">
+						Pas de "à partir de", pas d'add-on facturé à l'année, pas de bouton
+						"Contactez-nous" caché. Le prix que vous voyez est le prix payé.
+					</p>
+				</div>
+			</section>
 
-        {/* FAQ */}
-        <section
-          style={{ marginTop: 96, maxWidth: 720, margin: "96px auto 0" }}
-        >
-          <h2
-            className="text-2xl"
-            style={{
-              marginBottom: 32,
-              textAlign: "center",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Questions fréquentes
-          </h2>
-          <div className="col" style={{ gap: 0 }}>
-            {FAQ_ITEMS.map(([q, a], i) => (
-              <details key={i} className="pricing-faq">
-                <summary>{q}</summary>
-                <p>{a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
-      </section>
+			{/* QUIZ */}
+			<section>
+				<div className="pricing-shell">
+					<div className="quiz reveal">
+						<div className="quiz-head">
+							<h2>
+								Quel plan vous va ?{" "}
+								<span className="serif-italic">Trois questions.</span>
+							</h2>
+							<div className="step-pos">
+								{filledCount === 0 ? "—" : filledCount} · 3
+							</div>
+						</div>
 
-      <style>{`
-        .pricing { background: var(--bg); min-height: 100%; }
-        .pricing-grid {
-          display: grid; grid-template-columns: repeat(3, 1fr);
-          gap: 16px;
-        }
-        .pricing-card {
-          background: var(--surface); border: 1px solid var(--border);
-          border-radius: 16px; padding: 28px 28px 32px;
-          display: flex; flex-direction: column; gap: 16px;
-          position: relative;
-        }
-        .pricing-card--featured {
-          border-color: var(--text);
-          background: linear-gradient(180deg, var(--surface), oklch(0.985 0.012 275));
-          box-shadow: var(--shadow-md);
-        }
-        .pricing-featured-tag {
-          position: absolute; top: -10px; left: 28px;
-          display: inline-flex; align-items: center; gap: 5px;
-          padding: 3px 9px; background: var(--text); color: var(--bg);
-          border-radius: 100px; font-size: 11px; font-weight: 500;
-          letter-spacing: 0.01em;
-        }
-        .pricing-head { margin-bottom: 4px; }
-        .pricing-price {
-          display: flex; align-items: baseline; gap: 4px;
-          flex-wrap: wrap;
-        }
-        .pricing-currency {
-          font-size: 22px; color: var(--text-muted);
-          font-weight: 500;
-        }
-        .pricing-amount {
-          font-size: 56px; font-weight: 500;
-          letter-spacing: -0.03em; line-height: 1;
-          font-family: var(--font-mono);
-        }
-        .pricing-period {
-          font-size: 13px; color: var(--text-muted);
-          margin-left: 4px;
-        }
-        .pricing-features {
-          list-style: none; padding: 0; margin: 0;
-          display: flex; flex-direction: column; gap: 10px;
-        }
-        .pricing-features li {
-          display: flex; align-items: flex-start; gap: 10px;
-          font-size: 13.5px; line-height: 1.45;
-        }
-        .pricing-compare {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          overflow: hidden;
-        }
-        .pricing-compare table {
-          width: 100%; border-collapse: collapse;
-          font-size: 13.5px;
-        }
-        .pricing-compare th, .pricing-compare td {
-          padding: 12px 20px; text-align: left;
-          border-bottom: 1px solid var(--border);
-        }
-        .pricing-compare th {
-          background: var(--bg-soft);
-          font-weight: 500; font-size: 12.5px;
-          color: var(--text-muted);
-        }
-        .pricing-compare td:not(:first-child),
-        .pricing-compare th:not(:first-child) {
-          text-align: center;
-        }
-        .pricing-compare tr:last-child td { border-bottom: none; }
-        .pricing-faq {
-          border-bottom: 1px solid var(--border);
-          padding: 16px 0;
-        }
-        .pricing-faq summary {
-          font-weight: 500; font-size: 15px;
-          cursor: pointer; list-style: none;
-          display: flex; align-items: center; justify-content: space-between;
-        }
-        .pricing-faq summary::-webkit-details-marker { display: none; }
-        .pricing-faq summary::after {
-          content: '+'; font-size: 18px; color: var(--text-subtle);
-          font-weight: 300;
-        }
-        .pricing-faq[open] summary::after { content: '−'; }
-        .pricing-faq p {
-          margin: 12px 0 0; color: var(--text-muted);
-          line-height: 1.55; font-size: 14px;
-        }
-      `}</style>
-    </div>
-  );
+						<div className="quiz-grid">
+							<QuizQuestion
+								n="1"
+								question="Combien êtes-vous dans l'équipe ?"
+								options={[
+									{ value: "solo", label: "Tout seul·e" },
+									{ value: "small", label: "2 à 15 personnes" },
+									{ value: "large", label: "16 personnes ou plus" },
+								]}
+								selected={size}
+								onChange={(v) => setSize(v as Size)}
+							/>
+							<QuizQuestion
+								n="2"
+								question="Quel usage principal ?"
+								options={[
+									{ value: "kanban", label: "Kanban uniquement" },
+									{ value: "multi", label: "Plusieurs vues, collaboration" },
+									{
+										value: "reporting",
+										label: "Pilotage, reporting, intégrations",
+									},
+								]}
+								selected={usage}
+								onChange={(v) => setUsage(v as Usage)}
+							/>
+							<QuizQuestion
+								n="3"
+								question="Exigences de sécurité ?"
+								options={[
+									{ value: "standard", label: "Standard, c'est bien" },
+									{ value: "sso", label: "SSO et journal d'audit" },
+									{ value: "custom", label: "Hébergement dédié, sur mesure" },
+								]}
+								selected={security}
+								onChange={(v) => setSecurity(v as Security)}
+							/>
+						</div>
+
+						<QuizResult plan={recommended} />
+					</div>
+				</div>
+			</section>
+
+			{/* PLANS */}
+			<section style={{ marginTop: 24 }}>
+				<div className="pricing-shell">
+					<div className="plan-controls reveal">
+						<fieldset
+							className="billing-toggle"
+							aria-label="Période de facturation"
+						>
+							<button
+								type="button"
+								aria-pressed={billing === "month"}
+								onClick={() => setBilling("month")}
+							>
+								MENSUEL
+							</button>
+							<button
+								type="button"
+								aria-pressed={billing === "year"}
+								onClick={() => setBilling("year")}
+							>
+								ANNUEL <span className="save">– 20%</span>
+							</button>
+						</fieldset>
+						<div className="member-slider">
+							<label>
+								MEMBRES DE L'ÉQUIPE
+								<div className="row">
+									<input
+										type="range"
+										min={1}
+										max={50}
+										value={members}
+										onChange={(e) => setMembers(Number(e.target.value))}
+										aria-label="Nombre de membres"
+										style={{ "--p": `${sliderPct}%` } as React.CSSProperties}
+									/>
+								</div>
+							</label>
+							<div className="count">{members}</div>
+						</div>
+					</div>
+
+					<div className="pricing-plans reveal-stagger">
+						{/* SOLO */}
+						<article
+							className={`plan-card${recommended === "solo" ? " is-matched" : ""}`}
+						>
+							<div className="plan-head">
+								<h3>
+									Solo<em>Pour démarrer</em>
+								</h3>
+								{recommended === "solo" && (
+									<span className="plan-badge is-match">POUR VOUS</span>
+								)}
+							</div>
+							<div className="plan-price">
+								<span className="amount">0</span>
+								<div className="per">
+									€ / mois
+									<br />
+									<b>gratuit pour toujours</b>
+								</div>
+							</div>
+							<div className="plan-total">
+								<span>Coût mensuel</span>
+								<b>0 €</b>
+							</div>
+							<div className="plan-desc">
+								Tout Flowboard pour une personne. Idéal pour les freelances, les
+								side projects et les essais en équipe.
+							</div>
+							<ul className="plan-features">
+								<PlanFeature>
+									<b>3 boards</b>, 100 tickets
+								</PlanFeature>
+								<PlanFeature>
+									Vues <b>Kanban</b> et <b>Calendrier</b>
+								</PlanFeature>
+								<PlanFeature>40+ raccourcis clavier</PlanFeature>
+								<PlanFeature>Mode sombre et clair</PlanFeature>
+							</ul>
+							<div className="plan-cta">
+								<button
+									type="button"
+									className="btn btn--outline btn--lg"
+									onClick={() => void navigate({ to: "/register" })}
+								>
+									Démarrer gratuitement
+								</button>
+							</div>
+						</article>
+
+						{/* STUDIO */}
+						<article
+							className={`plan-card is-popular${
+								recommended === "studio" ? " is-matched" : ""
+							}`}
+						>
+							<div className="plan-head">
+								<h3>
+									Studio<em>Pour les équipes</em>
+								</h3>
+								<span className="plan-badge">
+									{recommended === "studio" ? "POUR VOUS" : "POPULAIRE"}
+								</span>
+							</div>
+							<div className="plan-price">
+								<span className="currency">€</span>
+								<span className="amount">
+									{billing === "year" ? studioPrice.toFixed(1) : studioPrice}
+								</span>
+								<div className="per">
+									<span>/ membre / mois</span>
+									<br />
+									<b>{billedLabel}</b>
+								</div>
+							</div>
+							<div className="plan-total">
+								<span>
+									Coût pour {members} membre{members > 1 ? "s" : ""}
+								</span>
+								<b>{studioTotal} € / mois</b>
+							</div>
+							<div className="plan-desc">
+								Tout Flowboard pour l'équipe. Les <b>quatre vues</b>,
+								l'historique illimité, la collaboration temps réel.
+							</div>
+							<ul className="plan-features">
+								<PlanFeature>
+									<b>Boards illimités</b>
+								</PlanFeature>
+								<PlanFeature>
+									Les <b>4 vues</b> + Dashboard personnalisable
+								</PlanFeature>
+								<PlanFeature>Curseurs et présence en temps réel</PlanFeature>
+								<PlanFeature>Automatisations (20 par mois)</PlanFeature>
+								<PlanFeature>Intégrations GitHub, Slack, Linear</PlanFeature>
+								<PlanFeature>Support email · 24h ouvrées</PlanFeature>
+							</ul>
+							<div className="plan-cta">
+								<button
+									type="button"
+									className="btn btn--accent btn--lg"
+									onClick={() => void navigate({ to: "/register" })}
+								>
+									Essayer 14 jours
+								</button>
+							</div>
+						</article>
+
+						{/* MAISON */}
+						<article
+							className={`plan-card${recommended === "maison" ? " is-matched" : ""}`}
+						>
+							<div className="plan-head">
+								<h3>
+									Maison<em>Pour les structures</em>
+								</h3>
+								{recommended === "maison" && (
+									<span className="plan-badge is-match">POUR VOUS</span>
+								)}
+							</div>
+							<div className="plan-price">
+								<span className="currency">€</span>
+								<span className="amount">
+									{billing === "year" ? maisonPrice.toFixed(1) : maisonPrice}
+								</span>
+								<div className="per">
+									<span>/ membre / mois</span>
+									<br />
+									<b>à partir de 16 membres</b>
+								</div>
+							</div>
+							<div className="plan-total">
+								<span>
+									Coût pour {members} membre{members > 1 ? "s" : ""}
+								</span>
+								<b>
+									{maisonTotal !== null
+										? `${maisonTotal} € / mois`
+										: "— sur devis"}
+								</b>
+							</div>
+							<div className="plan-desc">
+								Pour les structures qui ont besoin d'auditabilité, de SSO, d'un
+								référent dédié et d'un hébergement éventuellement dédié.
+							</div>
+							<ul className="plan-features">
+								<PlanFeature>Tout Studio +</PlanFeature>
+								<PlanFeature>
+									<b>SSO SAML</b>, SCIM
+								</PlanFeature>
+								<PlanFeature>Journal d'audit illimité</PlanFeature>
+								<PlanFeature>Automatisations illimitées</PlanFeature>
+								<PlanFeature>Hébergement dédié (option, +€)</PlanFeature>
+								<PlanFeature>Référent dédié · 4h ouvrées</PlanFeature>
+							</ul>
+							<div className="plan-cta">
+								<button type="button" className="btn btn--outline btn--lg">
+									Parler à Flowboard
+								</button>
+							</div>
+						</article>
+					</div>
+				</div>
+			</section>
+
+			{/* FEATURE MATRIX */}
+			<section className="features-matrix">
+				<div className="pricing-shell">
+					<div className="matrix-head reveal">
+						<h2>
+							Le détail, <em>par section.</em>
+						</h2>
+						<div className="note">CLIQUEZ POUR DÉPLIER</div>
+					</div>
+					<FeatureMatrix />
+				</div>
+			</section>
+
+			{/* FAQ */}
+			<section className="faq">
+				<div className="pricing-shell">
+					<div className="faq-head reveal">
+						<h2>
+							Questions <em>évidentes.</em>
+						</h2>
+					</div>
+					<div className="faq-grid reveal">
+						<FaqItem
+							q="Puis-je changer de plan en cours d'année ?"
+							a="Oui, à tout moment. Le passage à un plan supérieur est prorata du jour. Un retour à un plan inférieur prend effet à la fin de la période en cours — vous ne perdez jamais ce que vous avez déjà payé."
+							defaultOpen
+						/>
+						<FaqItem
+							q="Qu'arrive-t-il à mes données si j'annule ?"
+							a="Vous gardez 60 jours de fenêtre d'export complet (JSON + CSV par board). Au-delà, vos données sont supprimées définitivement de nos serveurs et de nos sauvegardes. Aucun renvoi de relance ou tentative de rétention."
+						/>
+						<FaqItem
+							q="Y a-t-il une remise pour les associations et l'éducation ?"
+							a="Oui — 50% sur Studio pour les associations loi 1901, les coopératives et les structures d'enseignement. Envoyez un email depuis votre adresse institutionnelle."
+						/>
+						<FaqItem
+							q="Hébergez-vous mes données en Europe ?"
+							a="Oui. Nos serveurs sont chez Scaleway, Paris et Strasbourg. Aucun transfert hors UE, conformité RGPD complète. Le plan Maison propose un hébergement dédié sur demande."
+						/>
+						<FaqItem
+							q="Acceptez-vous les paiements SEPA et virements ?"
+							a="Carte bancaire et SEPA pour Studio. Virement annuel sur facture pour Maison. Pas de surcoût, pas de frais d'activation."
+						/>
+					</div>
+				</div>
+			</section>
+		</div>
+	);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Quiz sub-components
+// ─────────────────────────────────────────────────────────────
+function QuizQuestion({
+	n,
+	question,
+	options,
+	selected,
+	onChange,
+}: {
+	n: string;
+	question: string;
+	options: { value: string; label: string }[];
+	selected: string | null;
+	onChange: (v: string) => void;
+}) {
+	return (
+		<div className="quiz-q">
+			<h3>
+				<span className="n">{n}</span>
+				{question}
+			</h3>
+			<div className="quiz-opts">
+				{options.map((opt) => {
+					const isOn = selected === opt.value;
+					return (
+						<button
+							key={opt.value}
+							type="button"
+							className="quiz-opt"
+							aria-pressed={isOn}
+							onClick={() => onChange(opt.value)}
+						>
+							<span className="quiz-radio" />
+							{opt.label}
+						</button>
+					);
+				})}
+			</div>
+		</div>
+	);
+}
+
+function QuizResult({ plan }: { plan: PlanId | null }) {
+	if (plan === null) {
+		return (
+			<output className="quiz-result" aria-live="polite">
+				<Icon name="bell" size={18} className="ic" />
+				<span>
+					Répondez aux trois questions — on met le plan recommandé en lumière.
+				</span>
+			</output>
+		);
+	}
+	const labels: Record<PlanId, { name: string; reason: string }> = {
+		solo: {
+			name: "Solo",
+			reason: "suffit largement — gratuit, à vie.",
+		},
+		studio: {
+			name: "Studio",
+			reason:
+				"est fait pour vous — les 4 vues, la collab temps réel, 14 jours d'essai.",
+		},
+		maison: {
+			name: "Maison",
+			reason: "— SSO, journal d'audit, référent dédié.",
+		},
+	};
+	const cur = labels[plan];
+	return (
+		<output className="quiz-result has-result" aria-live="polite">
+			<Icon name="spark" size={18} className="ic" />
+			<span>
+				<b>{cur.name}</b> {cur.reason}
+			</span>
+		</output>
+	);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Plan feature row
+// ─────────────────────────────────────────────────────────────
+function PlanFeature({ children }: { children: React.ReactNode }) {
+	return (
+		<li>
+			<Icon name="check" size={14} stroke={2.5} className="feature-check" />
+			<span>{children}</span>
+		</li>
+	);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Feature matrix — collapsible per category
+// ─────────────────────────────────────────────────────────────
+type MatrixRow = {
+	feature: string;
+	hint?: string;
+	solo: string | "yes" | "no";
+	studio: string | "yes" | "no";
+	maison: string | "yes" | "no";
+};
+type MatrixCategory = {
+	id: string;
+	label: string;
+	defaultOpen: boolean;
+	rows: MatrixRow[];
+};
+
+const MATRIX: MatrixCategory[] = [
+	{
+		id: "collab",
+		label: "Collaboration",
+		defaultOpen: true,
+		rows: [
+			{
+				feature: "Membres par espace",
+				hint: "Plafond du plan",
+				solo: "1",
+				studio: "Illimité",
+				maison: "Illimité",
+			},
+			{
+				feature: "Boards par espace",
+				solo: "3",
+				studio: "Illimités",
+				maison: "Illimités",
+			},
+			{
+				feature: "Curseurs en temps réel",
+				hint: "Présence, sélection",
+				solo: "no",
+				studio: "yes",
+				maison: "yes",
+			},
+			{
+				feature: "Commentaires + mentions",
+				solo: "yes",
+				studio: "yes",
+				maison: "yes",
+			},
+			{
+				feature: "Invités externes",
+				solo: "2",
+				studio: "10 par board",
+				maison: "Illimités",
+			},
+		],
+	},
+	{
+		id: "vues",
+		label: "Vues",
+		defaultOpen: true,
+		rows: [
+			{
+				feature: "Kanban",
+				hint: "Drag-and-drop, WIP, swimlanes",
+				solo: "yes",
+				studio: "yes",
+				maison: "yes",
+			},
+			{
+				feature: "Calendrier",
+				hint: "Jour, semaine, mois",
+				solo: "yes",
+				studio: "yes",
+				maison: "yes",
+			},
+			{
+				feature: "Timeline",
+				hint: "Gantt léger, dépendances",
+				solo: "no",
+				studio: "yes",
+				maison: "yes",
+			},
+			{
+				feature: "Dashboard",
+				hint: "Vélocité, cycle, focus",
+				solo: "no",
+				studio: "yes",
+				maison: "yes",
+			},
+		],
+	},
+	{
+		id: "auto",
+		label: "Automatisation",
+		defaultOpen: false,
+		rows: [
+			{
+				feature: "Règles automatiques",
+				hint: "Quand → alors",
+				solo: "no",
+				studio: "20 / mois",
+				maison: "Illimitées",
+			},
+			{
+				feature: "Webhooks sortants",
+				solo: "no",
+				studio: "5",
+				maison: "Illimités",
+			},
+			{
+				feature: "API et clés personnelles",
+				solo: "no",
+				studio: "yes",
+				maison: "yes",
+			},
+		],
+	},
+	{
+		id: "sup",
+		label: "Support",
+		defaultOpen: false,
+		rows: [
+			{
+				feature: "Réponse first-touch",
+				solo: "Communauté",
+				studio: "24h ouvrées",
+				maison: "4h ouvrées",
+			},
+			{ feature: "Référent dédié", solo: "no", studio: "no", maison: "yes" },
+			{
+				feature: "SLA de disponibilité",
+				solo: "no",
+				studio: "99.9%",
+				maison: "99.95%",
+			},
+		],
+	},
+];
+
+function FeatureMatrix() {
+	const [open, setOpen] = useState<Record<string, boolean>>(() => {
+		const init: Record<string, boolean> = {};
+		for (const c of MATRIX) init[c.id] = c.defaultOpen;
+		return init;
+	});
+
+	return (
+		<div className="matrix reveal">
+			<div className="mc mc-h" />
+			<div className="mc mc-h plan">
+				Solo<small>0 €</small>
+			</div>
+			<div className="mc mc-h plan recommended">
+				Studio<small>9 € / membre</small>
+			</div>
+			<div className="mc mc-h plan">
+				Maison<small>19 € / membre</small>
+			</div>
+
+			{MATRIX.map((cat) => {
+				const isOpen = open[cat.id];
+				return (
+					<MatrixCategoryBlock
+						key={cat.id}
+						cat={cat}
+						isOpen={isOpen}
+						onToggle={() => setOpen((s) => ({ ...s, [cat.id]: !s[cat.id] }))}
+					/>
+				);
+			})}
+		</div>
+	);
+}
+
+function MatrixCategoryBlock({
+	cat,
+	isOpen,
+	onToggle,
+}: {
+	cat: MatrixCategory;
+	isOpen: boolean;
+	onToggle: () => void;
+}) {
+	return (
+		<>
+			<button
+				type="button"
+				className="mc-section"
+				aria-expanded={isOpen}
+				onClick={onToggle}
+			>
+				<Icon name="chevron" size={14} stroke={2.5} className="chev" />
+				{cat.label}
+				<span className="count">{cat.rows.length} features</span>
+			</button>
+			<div className={`mc-section-body${isOpen ? "" : " is-collapsed"}`}>
+				{cat.rows.map((r) => (
+					<MatrixRowCells key={r.feature} row={r} />
+				))}
+			</div>
+		</>
+	);
+}
+
+function MatrixRowCells({ row }: { row: MatrixRow }) {
+	return (
+		<>
+			<div className="mc mc-feature">
+				{row.feature}
+				{row.hint && <small>{row.hint}</small>}
+			</div>
+			<MatrixCell value={row.solo} />
+			<MatrixCell value={row.studio} recommended />
+			<MatrixCell value={row.maison} />
+		</>
+	);
+}
+
+function MatrixCell({
+	value,
+	recommended,
+}: {
+	value: string | "yes" | "no";
+	recommended?: boolean;
+}) {
+	const cls = `mc mc-val${recommended ? " recommended" : ""}${
+		value === "yes" ? " mc-yes" : ""
+	}${value === "no" ? " mc-no" : ""}`;
+
+	if (value === "yes") {
+		return (
+			<div className={cls}>
+				<Icon name="check" size={16} stroke={2.5} />
+			</div>
+		);
+	}
+	if (value === "no") {
+		return <div className={cls}>—</div>;
+	}
+	return <div className={cls}>{value}</div>;
+}
+
+// ─────────────────────────────────────────────────────────────
+// FAQ accordion (uses native <details>)
+// ─────────────────────────────────────────────────────────────
+function FaqItem({
+	q,
+	a,
+	defaultOpen,
+}: {
+	q: string;
+	a: string;
+	defaultOpen?: boolean;
+}) {
+	return (
+		<details className="faq-item" open={defaultOpen}>
+			<summary>
+				{q}
+				<Icon name="plus" size={16} stroke={2} className="chev" />
+			</summary>
+			<div className="faq-a">{a}</div>
+		</details>
+	);
 }
