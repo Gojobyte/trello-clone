@@ -159,3 +159,8 @@ export function photoFor(id: string | undefined): BoardPhoto | undefined {
 	if (!id) return undefined;
 	return BOARD_PHOTOS.find((p) => p.id === id);
 }
+
+export function hexFor(colorId: string | undefined): string {
+	const match = BOARD_GRADIENTS.find((c) => c.id === colorId);
+	return match?.hex ?? BOARD_GRADIENTS[1].hex;
+}

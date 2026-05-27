@@ -167,4 +167,73 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_user_and_read', ['userId', 'read']),
+
+  // ── Objectifs (OKR) ──────────────────────────────────────────────
+  goals: defineTable({
+    ownerId: v.string(),
+    title: v.string(),
+    quarter: v.string(), // ex. "Q2 2026"
+    color: v.string(), // id de couleur (indigo, emerald, ...)
+    status: v.union(
+      v.literal('on_track'),
+      v.literal('at_risk'),
+      v.literal('off_track'),
+    ),
+  }).index('by_owner', ['ownerId']),
+
+  keyResults: defineTable({
+    goalId: v.id('goals'),
+    ownerId: v.string(),
+    title: v.string(),
+    progress: v.number(), // 0-100
+  })
+    .index('by_goal', ['goalId'])
+    .index('by_owner', ['ownerId']),
+
+  // ── Docs (wiki d'équipe) ─────────────────────────────────────────
+  docs: defineTable({
+    ownerId: v.string(),
+    title: v.string(),
+    emoji: v.string(),
+    content: v.string(),
+    updatedByName: v.string(),
+  }).index('by_owner', ['ownerId']),
+
+  // ── Sprints ──────────────────────────────────────────────────────
+  sprints: defineTable({
+    ownerId: v.string(),
+    name: v.string(),
+    goal: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+    status: v.union(
+      v.literal('active'),
+      v.literal('planned'),
+      v.literal('completed'),
+    ),
+    committed: v.number(), // points engagés
+    completed: v.number(), // points terminés
+  }).index('by_owner', ['ownerId']),
+
+  // ── Vues sauvegardées (My Work) ──────────────────────────────────
+  savedViews: defineTable({
+    ownerId: v.string(),
+    name: v.string(),
+    icon: v.string(),
+    filterPriority: v.optional(v.string()),
+    filterDue: v.optional(v.string()), // 'overdue' | 'today' | 'week' | 'any'
+  }).index('by_owner', ['ownerId']),
+
+  // ── Règles d'automatisation ──────────────────────────────────────
+  automationRules: defineTable({
+    ownerId: v.string(),
+    boardId: v.optional(v.id('boards')),
+    name: v.string(),
+    trigger: v.string(), // code du déclencheur
+    actions: v.array(v.string()), // codes des actions
+    enabled: v.boolean(),
+    runCount: v.number(),
+  })
+    .index('by_owner', ['ownerId'])
+    .index('by_board', ['boardId']),
 })

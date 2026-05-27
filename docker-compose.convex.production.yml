@@ -1,0 +1,22 @@
+# Override des origins Convex pour la production.
+# Garde les volumes/données existants (pas de réinstall).
+#
+# Usage (sur le serveur Hetzner) :
+#   docker compose -f docker-compose.dev.yml -f docker-compose.convex.production.yml up -d
+#
+# Le SITE_ORIGIN sert d'`iss` (issuer) dans les JWT Better-Auth — il DOIT
+# matcher l'URL publique sinon les tokens sont rejetés côté validation.
+
+services:
+  convex-backend:
+    environment:
+      INSTANCE_NAME: trello-clone
+      INSTANCE_SECRET: 9578ea41c00046a09d027d276cff267be04a8798ba0b6f3a001e093aa78f6983
+      CONVEX_CLOUD_ORIGIN: https://api.projetsynergie.fr
+      CONVEX_SITE_ORIGIN: https://auth.projetsynergie.fr
+      RUST_LOG: info
+      DISABLE_BEACON: "true"
+      # Cookie session valable sur tous les sous-domaines de projetsynergie.fr
+      COOKIE_DOMAIN: .projetsynergie.fr
+      # Lu par convex/auth.ts pour `baseURL` Better-Auth
+      SITE_URL: https://trello.projetsynergie.fr

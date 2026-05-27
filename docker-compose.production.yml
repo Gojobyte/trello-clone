@@ -30,22 +30,25 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3000
-      # Convex côté SSR Node : Vite inline les VITE_* au build, mais le bundle
-      # serveur les lit AUSSI via process.env au runtime → il faut les exposer.
-      VITE_CONVEX_URL: https://api.${TRELLO_DOMAIN:-example.xyz}
-      VITE_CONVEX_SITE_URL: https://auth.${TRELLO_DOMAIN:-example.xyz}
+      # IMPORTANT : côté SSR Node, on contacte le container Convex via le réseau
+      # Docker interne (le container ne peut pas joindre sa propre IP publique →
+      # ConnectTimeout). Le bundle client utilise les URLs publiques (inline au
+      # build via les `args:` ci-dessus).
+      VITE_CONVEX_URL: http://trello-convex-backend:3210
+      VITE_CONVEX_SITE_URL: http://trello-convex-backend:3211
       VITE_SITE_URL: https://trello.${TRELLO_DOMAIN:-example.xyz}
-      CONVEX_URL: https://api.${TRELLO_DOMAIN:-example.xyz}
-      CONVEX_SITE_URL: https://auth.${TRELLO_DOMAIN:-example.xyz}
+      CONVEX_URL: http://trello-convex-backend:3210
+      CONVEX_SITE_URL: http://trello-convex-backend:3211
       # Auth Better-Auth runtime
       BETTER_AUTH_URL: https://trello.${TRELLO_DOMAIN:-example.xyz}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       SITE_URL: https://trello.${TRELLO_DOMAIN:-example.xyz}
     expose:
       - "3000"
-    # Pas de "ports:" car Caddy s'en occupe via le réseau Docker partagé
+    # 2 réseaux : Caddy (chadia-projects_chadia) ET Convex (trello-clone-dev_default)
     networks:
       - chadia-projects_chadia
+      - trello-clone-dev_default
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
@@ -54,6 +57,9 @@ services:
       start_period: 30s
 
 networks:
-  # Réutilise le réseau Docker du Caddy CHADIA pour qu'il puisse nous joindre
+  # Réseau Caddy CHADIA (pour qu'il puisse nous reverse-proxy)
   chadia-projects_chadia:
+    external: true
+  # Réseau Convex (pour appels SSR internes vers trello-convex-backend)
+  trello-clone-dev_default:
     external: true

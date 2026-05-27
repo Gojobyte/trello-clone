@@ -9,22 +9,94 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkloadRouteImport } from './routes/workload'
+import { Route as TemplatesRouteImport } from './routes/templates'
+import { Route as SprintsRouteImport } from './routes/sprints'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RoadmapRouteImport } from './routes/roadmap'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as MyWorkRouteImport } from './routes/my-work'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as IntegrationsRouteImport } from './routes/integrations'
+import { Route as GoalsRouteImport } from './routes/goals'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as ChangelogRouteImport } from './routes/changelog'
+import { Route as AutomationsRouteImport } from './routes/automations'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BoardsIndexRouteImport } from './routes/boards/index'
 import { Route as WorkspacesWorkspaceIdRouteImport } from './routes/workspaces/$workspaceId'
 import { Route as BoardsBoardIdRouteImport } from './routes/boards/$boardId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const WorkloadRoute = WorkloadRouteImport.update({
+  id: '/workload',
+  path: '/workload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TemplatesRoute = TemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SprintsRoute = SprintsRouteImport.update({
+  id: '/sprints',
+  path: '/sprints',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoadmapRoute = RoadmapRouteImport.update({
+  id: '/roadmap',
+  path: '/roadmap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyWorkRoute = MyWorkRouteImport.update({
+  id: '/my-work',
+  path: '/my-work',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsRoute = IntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalsRoute = GoalsRouteImport.update({
+  id: '/goals',
+  path: '/goals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangelogRoute = ChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AutomationsRoute = AutomationsRouteImport.update({
+  id: '/automations',
+  path: '/automations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -55,8 +127,20 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/automations': typeof AutomationsRoute
+  '/changelog': typeof ChangelogRoute
+  '/docs': typeof DocsRoute
+  '/goals': typeof GoalsRoute
+  '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
+  '/my-work': typeof MyWorkRoute
+  '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
+  '/roadmap': typeof RoadmapRoute
+  '/settings': typeof SettingsRoute
+  '/sprints': typeof SprintsRoute
+  '/templates': typeof TemplatesRoute
+  '/workload': typeof WorkloadRoute
   '/boards/$boardId': typeof BoardsBoardIdRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRoute
   '/boards/': typeof BoardsIndexRoute
@@ -64,8 +148,20 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/automations': typeof AutomationsRoute
+  '/changelog': typeof ChangelogRoute
+  '/docs': typeof DocsRoute
+  '/goals': typeof GoalsRoute
+  '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
+  '/my-work': typeof MyWorkRoute
+  '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
+  '/roadmap': typeof RoadmapRoute
+  '/settings': typeof SettingsRoute
+  '/sprints': typeof SprintsRoute
+  '/templates': typeof TemplatesRoute
+  '/workload': typeof WorkloadRoute
   '/boards/$boardId': typeof BoardsBoardIdRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRoute
   '/boards': typeof BoardsIndexRoute
@@ -74,8 +170,20 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/automations': typeof AutomationsRoute
+  '/changelog': typeof ChangelogRoute
+  '/docs': typeof DocsRoute
+  '/goals': typeof GoalsRoute
+  '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
+  '/my-work': typeof MyWorkRoute
+  '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
+  '/roadmap': typeof RoadmapRoute
+  '/settings': typeof SettingsRoute
+  '/sprints': typeof SprintsRoute
+  '/templates': typeof TemplatesRoute
+  '/workload': typeof WorkloadRoute
   '/boards/$boardId': typeof BoardsBoardIdRoute
   '/workspaces/$workspaceId': typeof WorkspacesWorkspaceIdRoute
   '/boards/': typeof BoardsIndexRoute
@@ -85,8 +193,20 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/automations'
+    | '/changelog'
+    | '/docs'
+    | '/goals'
+    | '/integrations'
     | '/login'
+    | '/my-work'
+    | '/pricing'
     | '/register'
+    | '/roadmap'
+    | '/settings'
+    | '/sprints'
+    | '/templates'
+    | '/workload'
     | '/boards/$boardId'
     | '/workspaces/$workspaceId'
     | '/boards/'
@@ -94,8 +214,20 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/automations'
+    | '/changelog'
+    | '/docs'
+    | '/goals'
+    | '/integrations'
     | '/login'
+    | '/my-work'
+    | '/pricing'
     | '/register'
+    | '/roadmap'
+    | '/settings'
+    | '/sprints'
+    | '/templates'
+    | '/workload'
     | '/boards/$boardId'
     | '/workspaces/$workspaceId'
     | '/boards'
@@ -103,8 +235,20 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/automations'
+    | '/changelog'
+    | '/docs'
+    | '/goals'
+    | '/integrations'
     | '/login'
+    | '/my-work'
+    | '/pricing'
     | '/register'
+    | '/roadmap'
+    | '/settings'
+    | '/sprints'
+    | '/templates'
+    | '/workload'
     | '/boards/$boardId'
     | '/workspaces/$workspaceId'
     | '/boards/'
@@ -113,8 +257,20 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AutomationsRoute: typeof AutomationsRoute
+  ChangelogRoute: typeof ChangelogRoute
+  DocsRoute: typeof DocsRoute
+  GoalsRoute: typeof GoalsRoute
+  IntegrationsRoute: typeof IntegrationsRoute
   LoginRoute: typeof LoginRoute
+  MyWorkRoute: typeof MyWorkRoute
+  PricingRoute: typeof PricingRoute
   RegisterRoute: typeof RegisterRoute
+  RoadmapRoute: typeof RoadmapRoute
+  SettingsRoute: typeof SettingsRoute
+  SprintsRoute: typeof SprintsRoute
+  TemplatesRoute: typeof TemplatesRoute
+  WorkloadRoute: typeof WorkloadRoute
   BoardsBoardIdRoute: typeof BoardsBoardIdRoute
   WorkspacesWorkspaceIdRoute: typeof WorkspacesWorkspaceIdRoute
   BoardsIndexRoute: typeof BoardsIndexRoute
@@ -123,6 +279,41 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/workload': {
+      id: '/workload'
+      path: '/workload'
+      fullPath: '/workload'
+      preLoaderRoute: typeof WorkloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/templates': {
+      id: '/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof TemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sprints': {
+      id: '/sprints'
+      path: '/sprints'
+      fullPath: '/sprints'
+      preLoaderRoute: typeof SprintsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roadmap': {
+      id: '/roadmap'
+      path: '/roadmap'
+      fullPath: '/roadmap'
+      preLoaderRoute: typeof RoadmapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -130,11 +321,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-work': {
+      id: '/my-work'
+      path: '/my-work'
+      fullPath: '/my-work'
+      preLoaderRoute: typeof MyWorkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations': {
+      id: '/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof IntegrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goals': {
+      id: '/goals'
+      path: '/goals'
+      fullPath: '/goals'
+      preLoaderRoute: typeof GoalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/changelog': {
+      id: '/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof ChangelogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/automations': {
+      id: '/automations'
+      path: '/automations'
+      fullPath: '/automations'
+      preLoaderRoute: typeof AutomationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -177,8 +417,20 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AutomationsRoute: AutomationsRoute,
+  ChangelogRoute: ChangelogRoute,
+  DocsRoute: DocsRoute,
+  GoalsRoute: GoalsRoute,
+  IntegrationsRoute: IntegrationsRoute,
   LoginRoute: LoginRoute,
+  MyWorkRoute: MyWorkRoute,
+  PricingRoute: PricingRoute,
   RegisterRoute: RegisterRoute,
+  RoadmapRoute: RoadmapRoute,
+  SettingsRoute: SettingsRoute,
+  SprintsRoute: SprintsRoute,
+  TemplatesRoute: TemplatesRoute,
+  WorkloadRoute: WorkloadRoute,
   BoardsBoardIdRoute: BoardsBoardIdRoute,
   WorkspacesWorkspaceIdRoute: WorkspacesWorkspaceIdRoute,
   BoardsIndexRoute: BoardsIndexRoute,

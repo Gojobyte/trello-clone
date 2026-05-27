@@ -30,13 +30,27 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'Trello Clone',
+        title: 'Flowboard — Du désordre à l\'organisation',
+      },
+      {
+        name: 'description',
+        content:
+          'Flowboard t\'aide à visualiser ton travail, organiser tes tâches et avancer en équipe. Tableaux Kanban, temps réel, collaboration.',
+      },
+      {
+        name: 'theme-color',
+        content: '#18181a',
       },
     ],
     links: [
       {
         rel: 'stylesheet',
         href: appCss,
+      },
+      {
+        rel: 'icon',
+        type: 'image/svg+xml',
+        href: '/favicon.svg',
       },
     ],
   }),
@@ -51,7 +65,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <head>
         <HeadContent />
       </head>

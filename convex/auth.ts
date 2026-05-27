@@ -27,6 +27,21 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       enabled: true,
       requireEmailVerification: false,
     },
+    // Permet la suppression de compte depuis la page Paramètres.
+    // Le mot de passe est exigé côté client pour confirmer l'identité.
+    user: {
+      deleteUser: {
+        enabled: true,
+      },
+    },
+    // Cookie utilisable sur tous les sous-domaines (trello.X.fr,
+    // auth.X.fr, api.X.fr) pour que la session se propage en prod.
+    advanced: {
+      crossSubDomainCookies: {
+        enabled: true,
+        domain: process.env.COOKIE_DOMAIN || undefined,
+      },
+    },
     plugins: [convex({ authConfig })],
   })
 }

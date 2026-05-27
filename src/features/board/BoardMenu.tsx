@@ -160,6 +160,48 @@ function BoardMenuMain({
 		onClose();
 	}
 
+	function handleExportCSV() {
+		if (!boardData) return;
+		const rows: Array<Array<string>> = [
+			["Liste", "Carte", "Description", "Terminée", "Échéance"],
+		];
+		for (const l of boardData.lists) {
+			const listCards = boardData.cards
+				.filter((c) => c.listId === l._id)
+				.sort((a, b) => a.position - b.position);
+			for (const c of listCards) {
+				rows.push([
+					l.name,
+					c.title,
+					c.description ?? "",
+					c.completed ? "oui" : "non",
+					c.dueDate
+						? new Date(c.dueDate).toLocaleDateString("fr-FR")
+						: "",
+				]);
+			}
+		}
+		// Échappement CSV : chaque champ entre guillemets, guillemets internes doublés.
+		const csv = rows
+			.map((r) =>
+				r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
+			)
+			.join("\r\n");
+		// BOM UTF-8 pour qu'Excel lise correctement les accents.
+		const blob = new Blob([`﻿${csv}`], {
+			type: "text/csv;charset=utf-8",
+		});
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = `${board.name.replace(/[^a-z0-9]/gi, "_")}.csv`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+		onClose();
+	}
+
 	const accentHex = board.color
 		? (BOARD_GRADIENTS.find((g) => g.id === board.color)?.hex ?? "#0c66e4")
 		: "#0c66e4";
@@ -249,6 +291,9 @@ function BoardMenuMain({
 				</BoardMenuItem>
 				<BoardMenuItem icon={<Download />} onClick={handleExport}>
 					Exporter en JSON
+				</BoardMenuItem>
+				<BoardMenuItem icon={<Download />} onClick={handleExportCSV}>
+					Exporter en CSV
 				</BoardMenuItem>
 			</div>
 

@@ -24,13 +24,11 @@ import {
 	Filter,
 	Grid3x3,
 	MoreHorizontal,
-	Search,
 	Star,
 	Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "#/components/ui/button";
-import { Input } from "#/components/ui/input";
 import {
 	Popover,
 	PopoverContent,
@@ -56,6 +54,8 @@ import {
 import { MemberAvatar } from "#/features/board/shared/MemberAvatar";
 import { NotificationBell } from "#/features/board/shared/NotificationBell";
 import { ShareBoardDialog } from "#/features/board/shared/ShareBoardDialog";
+import { FlowboardLogoFull } from "#/features/shared/FlowboardLogo";
+import { GlobalSearch } from "#/features/shared/GlobalSearch";
 import { CalendarView } from "#/features/board/views/CalendarView";
 import { TableView } from "#/features/board/views/TableView";
 import { api } from "../../../convex/_generated/api";
@@ -63,10 +63,27 @@ import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
 export const Route = createFileRoute("/boards/$boardId")({
 	component: BoardDetailPage,
+	validateSearch: (s: Record<string, unknown>): { view?: string } => ({
+		view: typeof s.view === "string" ? s.view : undefined,
+	}),
 });
+
+// Mappe les sous-vues de la sidebar (design gestion-pro) vers les modes du board.
+function mapViewParam(v: string | undefined): BoardViewMode {
+	switch (v) {
+		case "calendar":
+			return "calendar";
+		case "timeline":
+		case "dashboard":
+			return "table";
+		default:
+			return "kanban";
+	}
+}
 
 function BoardDetailPage() {
 	const { boardId } = useParams({ from: "/boards/$boardId" });
+	const { view: viewParam } = Route.useSearch();
 	const navigate = useNavigate();
 	const { data: session, isPending } = authClient.useSession();
 
@@ -119,7 +136,12 @@ function BoardDetailPage() {
 		void authClient.signOut().then(() => navigate({ to: "/" }));
 
 	return (
-		<BoardView data={data} userInitial={initial} onSignOut={handleSignOut} />
+		<BoardView
+			data={data}
+			userInitial={initial}
+			onSignOut={handleSignOut}
+			initialView={mapViewParam(viewParam)}
+		/>
 	);
 }
 
@@ -135,10 +157,12 @@ function BoardView({
 	data,
 	userInitial,
 	onSignOut,
+	initialView,
 }: {
 	data: BoardData;
 	userInitial: string;
 	onSignOut: () => void;
+	initialView: BoardViewMode;
 }) {
 	const { board, lists: serverLists, cards: serverCards } = data;
 	const photo = photoFor(board.backgroundImage);
@@ -162,8 +186,8 @@ function BoardView({
 	);
 	const [colorBlind, setColorBlind] = useState(false);
 
-	// Mode d'affichage du board
-	const [view, setView] = useState<BoardViewMode>("kanban");
+	// Mode d'affichage du board (initialisé depuis le paramètre d'URL ?view=)
+	const [view, setView] = useState<BoardViewMode>(initialView);
 
 	// Synchroniser depuis Convex quand on n'est pas en drag
 	useEffect(() => {
@@ -525,20 +549,16 @@ function TrelloTopBar({
 				>
 					<Grid3x3 className="h-4 w-4" />
 				</button>
-				<Link to="/boards" className="flex items-center px-1.5">
-					<span className="text-lg font-bold text-white">Trello</span>
+				<Link
+					to="/boards"
+					className="flex items-center px-1.5 text-white"
+				>
+					<FlowboardLogoFull iconClassName="h-6 w-6" />
 				</Link>
 			</div>
 
 			<div className="mx-auto hidden w-full max-w-2xl md:block">
-				<div className="relative">
-					<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60" />
-					<Input
-						type="search"
-						placeholder="Parcourir..."
-						className="h-8 border-white/20 bg-white/10 pl-9 text-sm text-white placeholder:text-white/60 focus-visible:border-white/40 focus-visible:bg-white/15 focus-visible:ring-0"
-					/>
-				</div>
+				<GlobalSearch variant="dark" />
 			</div>
 
 			<div className="flex shrink-0 items-center gap-1">
