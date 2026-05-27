@@ -1,705 +1,659 @@
+// ============ GOALS · Lume Éclat (Phase 3d) ============
+// Page OKR : pagehead serif italic + stats band + cartes objectifs.
+
 import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { toast } from "sonner";
+import { AppShell } from "#/features/app/AppShell";
+import { Icon } from "#/features/app/Icon";
+import { authClient } from "#/lib/auth-client";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { Icon } from "#/features/app/Icon";
-import { AppShell } from "#/features/app/AppShell";
-import { authClient } from "#/lib/auth-client";
-import { toast } from "sonner";
 
 // ============ TYPES CONVEX ============
 
 type ConvexKR = {
-  _id: Id<"keyResults">;
-  goalId: Id<"goals">;
-  title: string;
-  progress: number;
+	_id: Id<"keyResults">;
+	goalId: Id<"goals">;
+	title: string;
+	progress: number;
 };
 
 type ConvexGoal = {
-  _id: Id<"goals">;
-  title: string;
-  quarter: string;
-  color: string;
-  status: "on_track" | "at_risk" | "off_track";
-  _creationTime: number;
-  keyResults: ConvexKR[];
+	_id: Id<"goals">;
+	title: string;
+	quarter: string;
+	color: string;
+	status: "on_track" | "at_risk" | "off_track";
+	_creationTime: number;
+	keyResults: ConvexKR[];
 };
 
-// ============ COULEURS DISPONIBLES ============
+// ============ PALETTE ============
 
 const COLOR_OPTIONS = [
-  { id: "indigo",  value: "#6366f1", label: "Indigo" },
-  { id: "emerald", value: "#10b981", label: "Émeraude" },
-  { id: "violet",  value: "#8b5cf6", label: "Violet" },
-  { id: "amber",   value: "#f59e0b", label: "Ambre" },
-  { id: "rose",    value: "#f43f5e", label: "Rose" },
-  { id: "sky",     value: "#0ea5e9", label: "Ciel" },
-  { id: "teal",    value: "#14b8a6", label: "Sarcelle" },
-  { id: "slate",   value: "#64748b", label: "Ardoise" },
+	{ id: "amber", value: "#D88B1A", label: "Ambre" },
+	{ id: "plum", value: "#7C4DFF", label: "Prune" },
+	{ id: "teal", value: "#2E9A8A", label: "Sarcelle" },
+	{ id: "rose", value: "#C84F6A", label: "Rose" },
+	{ id: "blue", value: "#4A6FD8", label: "Bleu" },
+	{ id: "ember", value: "#E0573A", label: "Braise" },
+	{ id: "emerald", value: "#10B981", label: "Émeraude" },
+	{ id: "slate", value: "#64748B", label: "Ardoise" },
 ];
+
+const STATUS_LABEL: Record<ConvexGoal["status"], string> = {
+	on_track: "En ligne",
+	at_risk: "À risque",
+	off_track: "En dérive",
+};
+
+const QUARTERS = ["Q1 2026", "Q2 2026", "Q3 2026", "Q4 2026"] as const;
 
 // ============ ROUTE ============
 
 export const Route = createFileRoute("/goals")({
-  component: GoalsRoute,
+	component: GoalsRoute,
 });
 
 function GoalsRoute() {
-  return (
-    <AppShell active={{ route: "goals" }} title="Objectifs" crumbs={["Atelier Marchand"]}>
-      <GoalsContent />
-    </AppShell>
-  );
+	return (
+		<AppShell
+			active={{ route: "goals" }}
+			title="Objectifs"
+			crumbs={["Atelier Marchand"]}
+		>
+			<GoalsContent />
+		</AppShell>
+	);
 }
 
 // ============ CONTENU ============
 
 function GoalsContent() {
-  const { data: session } = authClient.useSession();
-  const goals = useQuery(api.goals.list, session?.user ? {} : "skip");
+	const { data: session } = authClient.useSession();
+	const goals = useQuery(api.goals.list, session?.user ? {} : "skip");
+	const createGoal = useMutation(api.goals.create);
 
-  const createGoal = useMutation(api.goals.create);
+	const [quarter, setQuarter] = useState<string>("Q2 2026");
+	const [openId, setOpenId] = useState<string | null>(null);
+	const [showCreate, setShowCreate] = useState(false);
 
-  const [quarter, setQuarter] = useState("Q2 2026");
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+	if (goals === undefined) {
+		return (
+			<div className="tools-page">
+				<div className="tools-loading">Chargement…</div>
+			</div>
+		);
+	}
 
-  if (goals === undefined) {
-    return (
-      <div className="view-inner">
-        <div style={{ padding: "60px 0", textAlign: "center", color: "var(--text-muted)" }}>
-          Chargement…
-        </div>
-      </div>
-    );
-  }
+	const filtered = (goals as ConvexGoal[]).filter((g) => g.quarter === quarter);
+	const goalPct = (g: ConvexGoal) =>
+		g.keyResults.length === 0
+			? 0
+			: Math.round(
+					g.keyResults.reduce((sum, kr) => sum + kr.progress, 0) /
+						g.keyResults.length,
+				);
+	const onTrack = filtered.filter((g) => g.status === "on_track").length;
+	const atRisk = filtered.filter((g) => g.status === "at_risk").length;
+	const offTrack = filtered.filter((g) => g.status === "off_track").length;
+	const krCount = filtered.reduce((a, g) => a + g.keyResults.length, 0);
 
-  const filtered = goals.filter(g => g.quarter === quarter);
+	return (
+		<div className="tools-page" style={{ ["--tools-stats-cols" as string]: 4 }}>
+			{/* ── Header ── */}
+			<header className="mw-pagehead">
+				<div className="mw-greet">
+					<div>
+						<h1 className="mw-greet-h1">
+							Objectifs <em className="serif-italic">trimestre</em>.
+						</h1>
+						<p className="tools-head-meta" style={{ marginTop: 8 }}>
+							<span>{quarter}</span>
+							<span className="dot" aria-hidden="true" />
+							<span>
+								{filtered.length} objectif{filtered.length !== 1 ? "s" : ""}
+							</span>
+							<span className="dot" aria-hidden="true" />
+							<span>
+								{krCount} résultat{krCount !== 1 ? "s" : ""} clé
+								{krCount !== 1 ? "s" : ""}
+							</span>
+						</p>
+					</div>
+					<div
+						style={{
+							display: "inline-flex",
+							alignItems: "center",
+							gap: 10,
+							flexWrap: "wrap",
+						}}
+					>
+						<div className="goals-quarter" role="tablist">
+							{QUARTERS.map((q) => (
+								<button
+									key={q}
+									type="button"
+									role="tab"
+									aria-selected={quarter === q}
+									className={`goals-quarter-btn${quarter === q ? " is-active" : ""}`}
+									onClick={() => setQuarter(q)}
+								>
+									{q}
+								</button>
+							))}
+						</div>
+						<button
+							type="button"
+							className="mw-cta"
+							onClick={() => setShowCreate(true)}
+						>
+							<Icon name="plus" size={14} />
+							<span>Nouvel objectif</span>
+						</button>
+					</div>
+				</div>
+			</header>
 
-  const goalProgress = (g: ConvexGoal) =>
-    g.keyResults.length === 0
-      ? 0
-      : Math.round(g.keyResults.reduce((sum, kr) => sum + kr.progress, 0) / g.keyResults.length);
+			{/* ── Stats band ── */}
+			<section className="tools-stats" aria-label="Indicateurs des objectifs">
+				<article className="tools-stat">
+					<span className="tools-stat-eyebrow">Total · {quarter}</span>
+					<span className="tools-stat-value">
+						{filtered.length}
+						<span className="unit">objectifs</span>
+					</span>
+					<span className="tools-stat-meta">
+						<b>{krCount}</b> résultats clés au total
+					</span>
+				</article>
+				<article className="tools-stat" data-tone="green">
+					<span className="tools-stat-eyebrow">En ligne</span>
+					<span className="tools-stat-value">
+						{onTrack}
+						<span className="unit">on track</span>
+					</span>
+					<span className="tools-stat-meta">
+						{filtered.length > 0
+							? `${Math.round((onTrack / filtered.length) * 100)}% du trimestre`
+							: "—"}
+					</span>
+				</article>
+				<article className="tools-stat" data-tone="amber">
+					<span className="tools-stat-eyebrow">À risque</span>
+					<span className="tools-stat-value">
+						{atRisk}
+						<span className="unit">à surveiller</span>
+					</span>
+					<span className="tools-stat-meta">
+						{atRisk === 0 ? "Rien à signaler" : "Vérifie les KR en souffrance"}
+					</span>
+				</article>
+				<article className="tools-stat" data-tone="red">
+					<span className="tools-stat-eyebrow">En dérive</span>
+					<span className="tools-stat-value">
+						{offTrack}
+						<span className="unit">off track</span>
+					</span>
+					<span className="tools-stat-meta">
+						{offTrack === 0
+							? "Tout est sous contrôle"
+							: "Replanifie ou abandonne"}
+					</span>
+				</article>
+			</section>
 
-  const totalProgress =
-    filtered.length === 0
-      ? 0
-      : Math.round(filtered.reduce((a, g) => a + goalProgress(g), 0) / filtered.length);
+			{/* ── Liste des objectifs ── */}
+			<section className="tools-body" aria-label="Liste des objectifs">
+				{filtered.length === 0 ? (
+					<div className="tools-empty">
+						<h2 className="tools-empty-h">
+							Pas encore d'<em>objectifs</em>.
+						</h2>
+						<p className="tools-empty-sub">
+							Définis tes ambitions pour {quarter} et casse-les en résultats
+							clés mesurables.
+						</p>
+						<button
+							type="button"
+							className="mw-cta"
+							onClick={() => setShowCreate(true)}
+						>
+							<Icon name="plus" size={14} />
+							<span>Créer un objectif</span>
+						</button>
+					</div>
+				) : (
+					filtered.map((g) => (
+						<GoalCard
+							key={g._id}
+							g={g}
+							pct={goalPct(g)}
+							open={openId === g._id}
+							onToggle={() => setOpenId(openId === g._id ? null : g._id)}
+						/>
+					))
+				)}
+			</section>
 
-  const onTrack  = filtered.filter(g => g.status === "on_track").length;
-  const atRisk   = filtered.filter(g => g.status === "at_risk").length;
-  const offTrack = filtered.filter(g => g.status === "off_track").length;
-
-  return (
-    <div className="view-inner">
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 500, letterSpacing: "-0.015em", margin: 0 }}>
-            Objectifs
-          </h1>
-          <p className="text-muted text-sm" style={{ margin: "4px 0 0" }}>
-            {filtered.length} objectifs · {filtered.reduce((a, g) => a + g.keyResults.length, 0)} résultats clés
-          </p>
-        </div>
-        <div className="row" style={{ gap: 8 }}>
-          <div className="row" style={{ padding: 2, background: "var(--bg-soft)", borderRadius: 6, gap: 0 }}>
-            {["Q1 2026", "Q2 2026", "Q3 2026"].map(q => (
-              <button
-                key={q}
-                onClick={() => setQuarter(q)}
-                style={{
-                  padding: "4px 12px", border: "none", borderRadius: 4,
-                  background: quarter === q ? "var(--surface)" : "transparent",
-                  boxShadow: quarter === q ? "var(--shadow-xs)" : "none",
-                  fontSize: 12.5, fontWeight: 500,
-                  color: quarter === q ? "var(--text)" : "var(--text-muted)",
-                  cursor: "pointer",
-                }}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-          <button className="btn btn--primary" onClick={() => setShowCreateModal(true)}>
-            <Icon name="plus" size={13} /> Nouvel objectif
-          </button>
-        </div>
-      </div>
-
-      {/* Summary strip */}
-      <div className="goals-summary">
-        <div className="goals-summary-main">
-          <span className="text-subtle text-xs" style={{ textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>
-            Avancement global · {quarter}
-          </span>
-          <div className="row" style={{ alignItems: "baseline", gap: 12, marginTop: 6 }}>
-            <span style={{ fontSize: 44, fontWeight: 500, letterSpacing: "-0.02em", fontFamily: "var(--font-mono)" }}>
-              {totalProgress}%
-            </span>
-            <span className="text-muted" style={{ fontSize: 14 }}>
-              {onTrack} en ligne · {atRisk} à risque · {offTrack} dérive
-            </span>
-          </div>
-          <div style={{ height: 8, background: "var(--bg-sunken)", borderRadius: 4, overflow: "hidden", marginTop: 14 }}>
-            <div style={{ height: "100%", width: `${totalProgress}%`,
-              background: "linear-gradient(90deg, var(--accent), oklch(0.62 0.18 295))" }} />
-          </div>
-          <div className="row" style={{ justifyContent: "space-between", marginTop: 6 }}>
-            <span className="text-subtle text-xs">Début · 1 avril</span>
-            <span className="text-subtle text-xs">Aujourd'hui · 20 mai</span>
-            <span className="text-subtle text-xs">Fin · 30 juin</span>
-          </div>
-        </div>
-        <div className="goals-summary-side">
-          <div>
-            <span className="text-subtle text-xs">Résultats clés</span>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500 }}>
-              {filtered.reduce((a, g) => a + g.keyResults.length, 0)}
-            </div>
-          </div>
-          <div>
-            <span className="text-subtle text-xs">Objectifs actifs</span>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500 }}>
-              {filtered.length}
-            </div>
-          </div>
-          <div>
-            <span className="text-subtle text-xs">En ligne</span>
-            <div className="row" style={{ gap: 4 }}>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 500, color: "var(--green)" }}>
-                {filtered.length === 0 ? "–" : `${Math.round((onTrack / filtered.length) * 100)}%`}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Goals list */}
-      <div style={{ marginTop: 24 }}>
-        <span className="text-subtle text-xs" style={{ textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 500 }}>
-          Objectifs du trimestre
-        </span>
-
-        {filtered.length === 0 ? (
-          <div className="goals-empty">
-            <div style={{ fontSize: 36, marginBottom: 12 }}>🎯</div>
-            <div style={{ fontWeight: 500, fontSize: 15, marginBottom: 6 }}>Aucun objectif pour {quarter}</div>
-            <div className="text-muted text-sm" style={{ marginBottom: 20 }}>
-              Définissez vos ambitions pour ce trimestre.
-            </div>
-            <button className="btn btn--primary" onClick={() => setShowCreateModal(true)}>
-              <Icon name="plus" size={13} /> Créer un objectif
-            </button>
-          </div>
-        ) : (
-          <div className="col" style={{ gap: 12, marginTop: 12 }}>
-            {filtered.map(g => (
-              <GoalCard
-                key={g._id}
-                g={g}
-                progress={goalProgress(g)}
-                open={openId === g._id}
-                onToggle={() => setOpenId(openId === g._id ? null : g._id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {showCreateModal && (
-        <CreateGoalModal
-          defaultQuarter={quarter}
-          onClose={() => setShowCreateModal(false)}
-          onCreate={async (data) => {
-            await createGoal(data);
-            toast.success("Objectif créé avec succès !");
-            setShowCreateModal(false);
-          }}
-        />
-      )}
-
-      <style>{`
-        .goals-summary {
-          margin-top: 24px;
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 14px;
-          padding: 24px 28px;
-          display: grid; grid-template-columns: 1.4fr 1fr;
-          gap: 32px;
-        }
-        .goals-summary-side {
-          display: grid; grid-template-columns: repeat(3, 1fr);
-          gap: 20px; align-items: center;
-          padding-left: 32px;
-          border-left: 1px solid var(--border);
-        }
-        .goal-card {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          overflow: hidden;
-          transition: border-color 0.12s, box-shadow 0.12s;
-        }
-        .goal-card:hover { border-color: var(--border-strong); }
-        .goal-head {
-          display: flex; align-items: center; gap: 14px;
-          padding: 18px 22px; cursor: pointer;
-        }
-        .goal-stripe {
-          width: 3px; align-self: stretch;
-          border-radius: 2px;
-        }
-        .goal-progress-ring {
-          width: 36px; height: 36px;
-          position: relative; flex: none;
-        }
-        .goal-progress-ring svg { transform: rotate(-90deg); }
-        .goal-progress-ring-text {
-          position: absolute; inset: 0;
-          display: grid; place-items: center;
-          font-family: var(--font-mono); font-size: 10px;
-          font-weight: 600;
-        }
-        .goal-title {
-          flex: 1; font-weight: 500; font-size: 15px;
-          letter-spacing: -0.005em; min-width: 0;
-        }
-        .goal-status-pill {
-          padding: 2px 8px; border-radius: 100px;
-          font-size: 11px; font-weight: 500;
-        }
-        .goal-body {
-          padding: 0 22px 20px;
-          border-top: 1px solid var(--border);
-        }
-        .kr-row {
-          display: grid; grid-template-columns: 1fr 160px 80px 80px;
-          gap: 12px; align-items: center;
-          padding: 14px 0;
-          border-bottom: 1px solid var(--border);
-        }
-        .kr-row:last-child { border-bottom: none; }
-        .kr-title { font-size: 13.5px; line-height: 1.45; }
-        .kr-bar {
-          height: 6px; background: var(--bg-sunken);
-          border-radius: 3px; overflow: hidden;
-        }
-        .kr-bar-fill { height: 100%; border-radius: 3px; }
-        .goals-empty {
-          margin-top: 48px;
-          display: flex; flex-direction: column;
-          align-items: center; text-align: center;
-          padding: 48px 24px;
-          background: var(--surface);
-          border: 1px dashed var(--border);
-          border-radius: 14px;
-        }
-        .goal-actions {
-          display: flex; gap: 8px; align-items: center; margin-left: auto;
-        }
-        .modal-backdrop {
-          position: fixed; inset: 0;
-          background: rgba(0,0,0,0.45);
-          z-index: 200;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .modal {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 16px;
-          padding: 28px 32px;
-          width: 520px; max-width: 95vw;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-        }
-        .modal h2 {
-          margin: 0 0 20px;
-          font-size: 17px; font-weight: 600;
-          letter-spacing: -0.01em;
-        }
-        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-        .form-label { font-size: 12.5px; font-weight: 500; color: var(--text-muted); }
-        .form-input {
-          padding: 8px 12px;
-          border: 1px solid var(--border);
-          border-radius: 8px;
-          background: var(--bg-soft);
-          color: var(--text);
-          font-size: 14px;
-          font-family: inherit;
-          outline: none;
-          transition: border-color 0.12s;
-        }
-        .form-input:focus { border-color: var(--accent); }
-        .color-grid {
-          display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px;
-        }
-        .color-swatch {
-          width: 28px; height: 28px; border-radius: 50%;
-          cursor: pointer; border: 2px solid transparent;
-          transition: transform 0.1s, border-color 0.1s;
-        }
-        .color-swatch:hover { transform: scale(1.15); }
-        .color-swatch.selected { border-color: var(--text); }
-        .kr-input-row {
-          display: flex; gap: 8px; align-items: center; margin-bottom: 8px;
-        }
-        .progress-slider {
-          width: 100%; accent-color: var(--accent); cursor: pointer;
-        }
-        .btn-icon {
-          padding: 4px 8px; border-radius: 6px; border: none;
-          background: transparent; cursor: pointer;
-          color: var(--text-muted); font-size: 12px;
-          transition: background 0.1s, color 0.1s;
-        }
-        .btn-icon:hover { background: var(--bg-soft); color: var(--text); }
-        .btn-danger {
-          color: var(--red) !important;
-        }
-        .btn-danger:hover { background: var(--red-soft) !important; }
-        .goal-head-actions {
-          display: flex; gap: 6px; align-items: center;
-        }
-        select.form-input { appearance: auto; }
-      `}</style>
-    </div>
-  );
+			{showCreate && (
+				<CreateGoalModal
+					defaultQuarter={quarter}
+					onClose={() => setShowCreate(false)}
+					onCreate={async (data) => {
+						await createGoal(data);
+						toast.success("Objectif créé.");
+						setShowCreate(false);
+					}}
+				/>
+			)}
+		</div>
+	);
 }
 
-// ============ STATUTS ============
-
-const STATUS_MAP: Record<string, { label: string; bg: string; fg: string }> = {
-  "on_track":  { label: "En ligne",  bg: "var(--green-soft)",  fg: "var(--green)" },
-  "at_risk":   { label: "À risque",  bg: "var(--amber-soft)",  fg: "var(--amber)" },
-  "off_track": { label: "En dérive", bg: "var(--red-soft)",    fg: "var(--red)"   },
-};
-
-// ============ COMPOSANT GOAL CARD ============
+// ============ GOAL CARD ============
 
 function GoalCard({
-  g,
-  progress,
-  open,
-  onToggle,
+	g,
+	pct,
+	open,
+	onToggle,
 }: {
-  g: ConvexGoal;
-  progress: number;
-  open: boolean;
-  onToggle: () => void;
+	g: ConvexGoal;
+	pct: number;
+	open: boolean;
+	onToggle: () => void;
 }) {
-  const updateGoal      = useMutation(api.goals.update);
-  const removeGoal      = useMutation(api.goals.remove);
-  const addKeyResult    = useMutation(api.goals.addKeyResult);
-  const updateKeyResult = useMutation(api.goals.updateKeyResult);
-  const removeKeyResult = useMutation(api.goals.removeKeyResult);
+	const updateGoal = useMutation(api.goals.update);
+	const removeGoal = useMutation(api.goals.remove);
+	const addKeyResult = useMutation(api.goals.addKeyResult);
+	const updateKeyResult = useMutation(api.goals.updateKeyResult);
+	const removeKeyResult = useMutation(api.goals.removeKeyResult);
 
-  const [newKrTitle, setNewKrTitle] = useState("");
-  const [addingKr, setAddingKr]     = useState(false);
+	const [newKr, setNewKr] = useState("");
+	const [addingKr, setAddingKr] = useState(false);
 
-  const s = STATUS_MAP[g.status] ?? STATUS_MAP["on_track"];
-  const r = 16;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (progress / 100) * circ;
+	const progressTone =
+		pct >= 80 ? "green" : g.status === "off_track" ? "red" : undefined;
 
-  function handleStatusChange(status: "on_track" | "at_risk" | "off_track") {
-    void updateGoal({ goalId: g._id, status });
-  }
+	function cycleStatus(e: React.MouseEvent) {
+		e.stopPropagation();
+		const next: Record<ConvexGoal["status"], ConvexGoal["status"]> = {
+			on_track: "at_risk",
+			at_risk: "off_track",
+			off_track: "on_track",
+		};
+		void updateGoal({ goalId: g._id, status: next[g.status] });
+	}
 
-  async function handleDelete() {
-    if (!confirm(`Supprimer l'objectif « ${g.title} » ? Cette action est irréversible.`)) return;
-    await removeGoal({ goalId: g._id });
-    toast.success("Objectif supprimé.");
-  }
+	function handleDelete(e: React.MouseEvent) {
+		e.stopPropagation();
+		if (
+			!confirm(
+				`Supprimer l'objectif « ${g.title} » ? Cette action est irréversible.`,
+			)
+		)
+			return;
+		void removeGoal({ goalId: g._id }).then(() =>
+			toast.success("Objectif supprimé."),
+		);
+	}
 
-  async function handleAddKr() {
-    if (!newKrTitle.trim()) return;
-    await addKeyResult({ goalId: g._id, title: newKrTitle.trim() });
-    setNewKrTitle("");
-    setAddingKr(false);
-    toast.success("Résultat clé ajouté.");
-  }
+	function handleAddKr() {
+		if (!newKr.trim()) return;
+		void addKeyResult({ goalId: g._id, title: newKr.trim() }).then(() => {
+			setNewKr("");
+			setAddingKr(false);
+			toast.success("Résultat clé ajouté.");
+		});
+	}
 
-  return (
-    <div className="goal-card">
-      <div className="goal-head" onClick={onToggle}>
-        <span className="goal-stripe" style={{ background: g.color }} />
-        <div className="goal-progress-ring">
-          <svg width="36" height="36">
-            <circle cx="18" cy="18" r={r} fill="none" stroke="var(--bg-sunken)" strokeWidth="3" />
-            <circle
-              cx="18" cy="18" r={r} fill="none" stroke={g.color} strokeWidth="3"
-              strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-            />
-          </svg>
-          <span className="goal-progress-ring-text">{progress}</span>
-        </div>
-        <div className="goal-title">
-          {g.title}
-          <div className="text-muted text-xs" style={{ marginTop: 2, fontWeight: 400 }}>
-            {g.keyResults.length} résultats clés · {g.quarter}
-          </div>
-        </div>
+	return (
+		<article className={`goal-card${open ? " is-open" : ""}`}>
+			<div className="goal-head">
+				<button
+					type="button"
+					className="goal-head-toggle"
+					onClick={onToggle}
+					aria-expanded={open}
+					aria-label={`Ouvrir ${g.title}`}
+				>
+					<span
+						className="goal-square"
+						style={{ background: g.color }}
+						aria-hidden="true"
+					/>
+					<span className="goal-title-wrap">
+						<span className="goal-title">{g.title}</span>
+						<span className="goal-meta">
+							<span>{g.quarter}</span>
+							<span className="sep" aria-hidden="true" />
+							<span>
+								{g.keyResults.length} KR{g.keyResults.length !== 1 ? "s" : ""}
+							</span>
+						</span>
+					</span>
+				</button>
+				<button
+					type="button"
+					className="goal-status"
+					data-state={g.status}
+					onClick={cycleStatus}
+					title="Changer le statut"
+				>
+					<span className="goal-status-dot" aria-hidden="true" />
+					<span>{STATUS_LABEL[g.status]}</span>
+				</button>
+				<span className="goal-pct">{pct}%</span>
+				<button
+					type="button"
+					className="goal-chev"
+					aria-label={open ? "Replier" : "Déplier"}
+					onClick={onToggle}
+				>
+					<Icon name="chevdown" size={14} stroke={1.6} />
+				</button>
+			</div>
 
-        {/* Statut modifiable — stoppe la propagation pour ne pas toggle la carte */}
-        <div onClick={e => e.stopPropagation()}>
-          <select
-            className="goal-status-pill"
-            value={g.status}
-            style={{
-              background: s.bg,
-              color: s.fg,
-              border: "none",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-            onChange={e => handleStatusChange(e.target.value as "on_track" | "at_risk" | "off_track")}
-          >
-            <option value="on_track">En ligne</option>
-            <option value="at_risk">À risque</option>
-            <option value="off_track">En dérive</option>
-          </select>
-        </div>
+			<div className="goal-progress" aria-hidden="true">
+				<div
+					className="goal-progress-fill"
+					data-tone={progressTone}
+					style={{ width: `${pct}%` }}
+				/>
+			</div>
 
-        {/* Bouton supprimer */}
-        <button
-          className="btn-icon btn-danger"
-          title="Supprimer l'objectif"
-          onClick={e => { e.stopPropagation(); void handleDelete(); }}
-        >
-          <Icon name="trash" size={14} />
-        </button>
+			{open && (
+				<div className="goal-body">
+					{g.keyResults.length === 0 ? (
+						<p
+							style={{
+								margin: "8px 0 0",
+								fontSize: 12.5,
+								color: "var(--text-subtle)",
+								fontStyle: "italic",
+							}}
+						>
+							Aucun résultat clé pour le moment.
+						</p>
+					) : (
+						g.keyResults.map((kr) => (
+							<KRRow
+								key={kr._id}
+								kr={kr}
+								onUpdate={(progress) =>
+									void updateKeyResult({ keyResultId: kr._id, progress })
+								}
+								onRemove={() => {
+									void removeKeyResult({ keyResultId: kr._id }).then(() =>
+										toast.success("Résultat clé supprimé."),
+									);
+								}}
+							/>
+						))
+					)}
 
-        <Icon
-          name="chevdown"
-          size={14}
-          stroke={1.8}
-          style={{
-            transform: open ? "none" : "rotate(-90deg)",
-            transition: "transform 0.18s",
-            color: "var(--text-subtle)",
-          }}
-        />
-      </div>
+					{addingKr ? (
+						<form
+							className="kr-add-form"
+							onSubmit={(e) => {
+								e.preventDefault();
+								handleAddKr();
+							}}
+						>
+							<input
+								className="kr-add-input"
+								placeholder="Titre du résultat clé…"
+								value={newKr}
+								onChange={(e) => setNewKr(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Escape") {
+										setAddingKr(false);
+										setNewKr("");
+									}
+								}}
+								/* biome-ignore lint/a11y/noAutofocus: form-toggled input expects focus */
+								autoFocus
+							/>
+							<button type="submit" className="sprint-mini" data-tone="primary">
+								Ajouter
+							</button>
+							<button
+								type="button"
+								className="sprint-mini"
+								onClick={() => {
+									setAddingKr(false);
+									setNewKr("");
+								}}
+							>
+								Annuler
+							</button>
+						</form>
+					) : (
+						<button
+							type="button"
+							className="kr-add"
+							onClick={() => setAddingKr(true)}
+						>
+							<Icon name="plus" size={12} />
+							<span>Ajouter un résultat clé</span>
+						</button>
+					)}
 
-      {open && (
-        <div className="goal-body">
-          {g.keyResults.map(kr => (
-            <KRRow
-              key={kr._id}
-              kr={kr}
-              goalColor={g.color}
-              onUpdate={(progress) => void updateKeyResult({ keyResultId: kr._id, progress })}
-              onRemove={() => {
-                void removeKeyResult({ keyResultId: kr._id });
-                toast.success("Résultat clé supprimé.");
-              }}
-            />
-          ))}
-
-          {/* Ajouter un KR */}
-          {addingKr ? (
-            <div className="kr-input-row" style={{ marginTop: 12 }}>
-              <input
-                className="form-input"
-                style={{ flex: 1 }}
-                placeholder="Titre du résultat clé…"
-                value={newKrTitle}
-                onChange={e => setNewKrTitle(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") void handleAddKr(); if (e.key === "Escape") setAddingKr(false); }}
-                autoFocus
-              />
-              <button className="btn btn--primary" style={{ fontSize: 13 }} onClick={() => void handleAddKr()}>
-                Ajouter
-              </button>
-              <button className="btn-icon" onClick={() => setAddingKr(false)}>Annuler</button>
-            </div>
-          ) : (
-            <button
-              className="btn-icon"
-              style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}
-              onClick={() => setAddingKr(true)}
-            >
-              <Icon name="plus" size={13} /> Ajouter un résultat clé
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
+					<div
+						style={{
+							display: "flex",
+							justifyContent: "flex-end",
+							marginTop: 12,
+						}}
+					>
+						<button
+							type="button"
+							className="sprint-mini"
+							data-tone="danger"
+							onClick={handleDelete}
+						>
+							<Icon name="trash" size={12} />
+							<span>Supprimer l'objectif</span>
+						</button>
+					</div>
+				</div>
+			)}
+		</article>
+	);
 }
 
-// ============ COMPOSANT KR ROW ============
+// ============ KR ROW ============
 
 function KRRow({
-  kr,
-  goalColor,
-  onUpdate,
-  onRemove,
+	kr,
+	onUpdate,
+	onRemove,
 }: {
-  kr: ConvexKR;
-  goalColor: string;
-  onUpdate: (progress: number) => void;
-  onRemove: () => void;
+	kr: ConvexKR;
+	onUpdate: (progress: number) => void;
+	onRemove: () => void;
 }) {
-  const [localProgress, setLocalProgress] = useState(kr.progress);
+	const [local, setLocal] = useState(kr.progress);
 
-  const pct = localProgress;
-
-  return (
-    <div className="kr-row">
-      <div>
-        <div className="kr-title">{kr.title}</div>
-      </div>
-
-      {/* Barre de progression */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <div className="kr-bar">
-          <div
-            className="kr-bar-fill"
-            style={{
-              width: `${pct}%`,
-              background: pct >= 80 ? "var(--green)" : pct >= 50 ? goalColor : "var(--amber)",
-            }}
-          />
-        </div>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          step={5}
-          value={localProgress}
-          className="progress-slider"
-          onChange={e => setLocalProgress(Number(e.target.value))}
-          onMouseUp={() => onUpdate(localProgress)}
-          onTouchEnd={() => onUpdate(localProgress)}
-        />
-      </div>
-
-      <div style={{ textAlign: "right", fontFamily: "var(--font-mono)", fontSize: 13 }}>
-        <span style={{ fontWeight: 500 }}>{localProgress}%</span>
-      </div>
-
-      <button
-        className="btn-icon btn-danger"
-        title="Supprimer ce résultat clé"
-        onClick={onRemove}
-        style={{ justifySelf: "end" }}
-      >
-        <Icon name="trash" size={13} />
-      </button>
-    </div>
-  );
+	return (
+		<div className="kr-row">
+			<span className="kr-title">{kr.title}</span>
+			<div>
+				<div className="kr-bar" aria-hidden="true">
+					<div className="kr-bar-fill" style={{ width: `${local}%` }} />
+				</div>
+				<input
+					type="range"
+					min={0}
+					max={100}
+					step={5}
+					value={local}
+					className="kr-bar-range"
+					onChange={(e) => setLocal(Number(e.target.value))}
+					onMouseUp={() => onUpdate(local)}
+					onTouchEnd={() => onUpdate(local)}
+					aria-label={`Progression : ${local}%`}
+				/>
+			</div>
+			<span className="kr-pct">{local}%</span>
+			<button
+				type="button"
+				className="kr-del"
+				onClick={onRemove}
+				aria-label="Supprimer ce résultat clé"
+			>
+				<Icon name="trash" size={13} />
+			</button>
+		</div>
+	);
 }
 
 // ============ MODALE DE CRÉATION ============
 
 type CreateGoalData = {
-  title: string;
-  quarter: string;
-  color: string;
-  keyResults?: string[];
+	title: string;
+	quarter: string;
+	color: string;
+	keyResults?: string[];
 };
 
 function CreateGoalModal({
-  defaultQuarter,
-  onClose,
-  onCreate,
+	defaultQuarter,
+	onClose,
+	onCreate,
 }: {
-  defaultQuarter: string;
-  onClose: () => void;
-  onCreate: (data: CreateGoalData) => Promise<void>;
+	defaultQuarter: string;
+	onClose: () => void;
+	onCreate: (data: CreateGoalData) => Promise<void>;
 }) {
-  const [title, setTitle]     = useState("");
-  const [quarter, setQuarter] = useState(defaultQuarter);
-  const [color, setColor]     = useState(COLOR_OPTIONS[0].value);
-  const [kr1, setKr1]         = useState("");
-  const [kr2, setKr2]         = useState("");
-  const [kr3, setKr3]         = useState("");
-  const [loading, setLoading] = useState(false);
+	const [title, setTitle] = useState("");
+	const [quarter, setQuarter] = useState(defaultQuarter);
+	const [color, setColor] = useState(COLOR_OPTIONS[0].value);
+	const [krs, setKrs] = useState([
+		{ id: "kr-1", value: "" },
+		{ id: "kr-2", value: "" },
+		{ id: "kr-3", value: "" },
+	]);
+	const [loading, setLoading] = useState(false);
 
-  async function handleSubmit() {
-    if (!title.trim()) { toast.error("Le titre est obligatoire."); return; }
-    if (!quarter.trim()) { toast.error("Le trimestre est obligatoire."); return; }
+	async function handleSubmit(e: React.FormEvent) {
+		e.preventDefault();
+		if (!title.trim()) {
+			toast.error("Le titre est obligatoire.");
+			return;
+		}
+		setLoading(true);
+		try {
+			const keyResults = krs.map((k) => k.value.trim()).filter(Boolean);
+			await onCreate({
+				title: title.trim(),
+				quarter: quarter.trim(),
+				color,
+				keyResults: keyResults.length > 0 ? keyResults : undefined,
+			});
+		} finally {
+			setLoading(false);
+		}
+	}
 
-    const keyResults = [kr1, kr2, kr3].map(k => k.trim()).filter(Boolean);
+	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: backdrop click is supplementary
+		<div
+			className="tools-modal-backdrop"
+			onClick={onClose}
+			onKeyDown={(e) => {
+				if (e.key === "Escape") onClose();
+			}}
+		>
+			<form
+				className="tools-modal"
+				aria-label="Nouvel objectif"
+				onClick={(e) => e.stopPropagation()}
+				onKeyDown={(e) => e.stopPropagation()}
+				onSubmit={handleSubmit}
+			>
+				<h2 className="tools-modal-h">Nouvel objectif</h2>
 
-    setLoading(true);
-    try {
-      await onCreate({ title: title.trim(), quarter: quarter.trim(), color, keyResults: keyResults.length > 0 ? keyResults : undefined });
-    } finally {
-      setLoading(false);
-    }
-  }
+				<div className="tools-modal-field">
+					<label className="tools-modal-label" htmlFor="goal-title">
+						Titre
+					</label>
+					<input
+						id="goal-title"
+						placeholder="Ex. : Lancer Flowboard v3"
+						value={title}
+						onChange={(e) => setTitle(e.target.value)}
+						/* biome-ignore lint/a11y/noAutofocus: modal opens with focus expected */
+						autoFocus
+					/>
+				</div>
 
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2>Nouvel objectif</h2>
+				<div className="tools-modal-field">
+					<label className="tools-modal-label" htmlFor="goal-quarter">
+						Trimestre
+					</label>
+					<input
+						id="goal-quarter"
+						placeholder="Q2 2026"
+						value={quarter}
+						onChange={(e) => setQuarter(e.target.value)}
+					/>
+				</div>
 
-        <div className="form-group">
-          <label className="form-label">Titre de l'objectif *</label>
-          <input
-            className="form-input"
-            placeholder="Ex. : Lancer la v3 et stabiliser la base"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            autoFocus
-          />
-        </div>
+				<div className="tools-modal-field">
+					<span className="tools-modal-label">Couleur</span>
+					<div className="tools-modal-swatches">
+						{COLOR_OPTIONS.map((c) => (
+							<button
+								type="button"
+								key={c.id}
+								className={`tools-modal-swatch${color === c.value ? " is-selected" : ""}`}
+								style={{ background: c.value }}
+								onClick={() => setColor(c.value)}
+								aria-label={c.label}
+							/>
+						))}
+					</div>
+				</div>
 
-        <div className="form-group">
-          <label className="form-label">Trimestre *</label>
-          <input
-            className="form-input"
-            placeholder="Ex. : Q2 2026"
-            value={quarter}
-            onChange={e => setQuarter(e.target.value)}
-          />
-        </div>
+				<div className="tools-modal-field">
+					<span className="tools-modal-label">Résultats clés (optionnels)</span>
+					{krs.map((k, i) => (
+						<input
+							key={k.id}
+							placeholder={`Résultat clé ${i + 1}…`}
+							value={k.value}
+							onChange={(e) => {
+								const next = [...krs];
+								next[i] = { ...next[i], value: e.target.value };
+								setKrs(next);
+							}}
+							style={{ marginTop: i === 0 ? 0 : 6 }}
+						/>
+					))}
+				</div>
 
-        <div className="form-group">
-          <label className="form-label">Couleur</label>
-          <div className="color-grid">
-            {COLOR_OPTIONS.map(c => (
-              <button
-                key={c.id}
-                className={`color-swatch${color === c.value ? " selected" : ""}`}
-                style={{ background: c.value }}
-                title={c.label}
-                onClick={() => setColor(c.value)}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Résultats clés (optionnels, 1-3)</label>
-          {[
-            { val: kr1, set: setKr1, ph: "Résultat clé 1…" },
-            { val: kr2, set: setKr2, ph: "Résultat clé 2…" },
-            { val: kr3, set: setKr3, ph: "Résultat clé 3…" },
-          ].map((item, i) => (
-            <input
-              key={i}
-              className="form-input"
-              style={{ marginBottom: 8 }}
-              placeholder={item.ph}
-              value={item.val}
-              onChange={e => item.set(e.target.value)}
-            />
-          ))}
-        </div>
-
-        <div className="row" style={{ gap: 10, justifyContent: "flex-end", marginTop: 8 }}>
-          <button className="btn" onClick={onClose} disabled={loading}>Annuler</button>
-          <button className="btn btn--primary" onClick={() => void handleSubmit()} disabled={loading}>
-            {loading ? "Création…" : "Créer l'objectif"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+				<div className="tools-modal-actions">
+					<button
+						type="button"
+						className="tools-modal-btn tools-modal-btn--ghost"
+						onClick={onClose}
+						disabled={loading}
+					>
+						Annuler
+					</button>
+					<button
+						type="submit"
+						className="tools-modal-btn tools-modal-btn--primary"
+						disabled={loading || !title.trim()}
+					>
+						{loading ? "Création…" : "Créer"}
+					</button>
+				</div>
+			</form>
+		</div>
+	);
 }

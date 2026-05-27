@@ -1,613 +1,663 @@
+// ============ AUTOMATIONS · Lume Éclat (Phase 3d, group B) ============
+// 2-col layout : liste de règles (toggle on/off) + panneau d'aide « comment ça marche ».
+
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, Fragment } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
+import { Fragment, useState } from "react";
+import { toast } from "sonner";
+import { AppShell } from "#/features/app/AppShell";
+import { Icon } from "#/features/app/Icon";
+import { authClient } from "#/lib/auth-client";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { Icon } from "#/features/app/Icon";
-import { AppShell } from "#/features/app/AppShell";
-import { authClient } from "#/lib/auth-client";
-import { toast } from "sonner";
 
 // ============ CATALOGUES ============
 
 interface CatalogEntry {
-  code: string;
-  label: string;
-  icon: string;
+	code: string;
+	label: string;
+	icon: string;
 }
 
 const TRIGGERS: CatalogEntry[] = [
-  { code: "card.created", label: "Quand une carte est créée", icon: "plus" },
-  { code: "card.completed", label: "Quand une carte est terminée", icon: "check" },
-  { code: "card.moved", label: "Quand une carte change de liste", icon: "arrow" },
-  { code: "due.approaching", label: "Quand une échéance approche", icon: "clock" },
-  { code: "card.assigned", label: "Quand une carte est assignée", icon: "user" },
-  { code: "comment.added", label: "Quand un commentaire est ajouté", icon: "chat" },
+	{ code: "card.created", label: "Quand une carte est créée", icon: "plus" },
+	{
+		code: "card.completed",
+		label: "Quand une carte est terminée",
+		icon: "check",
+	},
+	{
+		code: "card.moved",
+		label: "Quand une carte change de liste",
+		icon: "arrow",
+	},
+	{
+		code: "due.approaching",
+		label: "Quand une échéance approche",
+		icon: "clock",
+	},
+	{
+		code: "card.assigned",
+		label: "Quand une carte est assignée",
+		icon: "user",
+	},
+	{
+		code: "comment.added",
+		label: "Quand un commentaire est ajouté",
+		icon: "chat",
+	},
 ];
 
 const ACTIONS: CatalogEntry[] = [
-  { code: "notify", label: "Envoyer une notification", icon: "bell" },
-  { code: "archive", label: "Archiver la carte", icon: "check" },
-  { code: "move.done", label: "Déplacer vers Terminé", icon: "arrow" },
-  { code: "assign", label: "Assigner un membre", icon: "user" },
-  { code: "label.add", label: "Ajouter une étiquette", icon: "flag" },
-  { code: "comment", label: "Ajouter un commentaire", icon: "chat" },
-  { code: "due.set", label: "Définir une échéance", icon: "clock" },
+	{ code: "notify", label: "Envoyer une notification", icon: "bell" },
+	{ code: "archive", label: "Archiver la carte", icon: "check" },
+	{ code: "move.done", label: "Déplacer vers Terminé", icon: "arrow" },
+	{ code: "assign", label: "Assigner un membre", icon: "user" },
+	{ code: "label.add", label: "Ajouter une étiquette", icon: "flag" },
+	{ code: "comment", label: "Ajouter un commentaire", icon: "chat" },
+	{ code: "due.set", label: "Définir une échéance", icon: "clock" },
 ];
 
 function triggerLabel(code: string): string {
-  return TRIGGERS.find((t) => t.code === code)?.label ?? code;
+	return TRIGGERS.find((t) => t.code === code)?.label ?? code;
 }
 
 function triggerIcon(code: string): string {
-  return TRIGGERS.find((t) => t.code === code)?.icon ?? "bolt";
+	return TRIGGERS.find((t) => t.code === code)?.icon ?? "bolt";
 }
 
 function actionLabel(code: string): string {
-  return ACTIONS.find((a) => a.code === code)?.label ?? code;
+	return ACTIONS.find((a) => a.code === code)?.label ?? code;
 }
 
 function actionIcon(code: string): string {
-  return ACTIONS.find((a) => a.code === code)?.icon ?? "bolt";
+	return ACTIONS.find((a) => a.code === code)?.icon ?? "bolt";
 }
-
-// ============ TEMPLATES ============
-
-interface TemplateItem {
-  icon: string;
-  title: string;
-  trigger: string;
-  actions: string[];
-  name: string;
-}
-
-const TEMPLATES: TemplateItem[] = [
-  {
-    icon: "check",
-    title: "Archiver les cartes terminées",
-    name: "Archiver à la complétion",
-    trigger: "card.completed",
-    actions: ["archive"],
-  },
-  {
-    icon: "bell",
-    title: "Notifier quand une carte est assignée",
-    name: "Notification d'assignation",
-    trigger: "card.assigned",
-    actions: ["notify"],
-  },
-  {
-    icon: "user",
-    title: "Assigner un membre à la création",
-    name: "Auto-assignation",
-    trigger: "card.created",
-    actions: ["assign"],
-  },
-  {
-    icon: "clock",
-    title: "Définir une échéance à la création",
-    name: "Échéance automatique",
-    trigger: "card.created",
-    actions: ["due.set"],
-  },
-  {
-    icon: "flag",
-    title: "Ajouter une étiquette quand terminé",
-    name: "Étiquetage automatique",
-    trigger: "card.completed",
-    actions: ["label.add"],
-  },
-  {
-    icon: "chat",
-    title: "Commenter quand l'échéance approche",
-    name: "Alerte échéance",
-    trigger: "due.approaching",
-    actions: ["comment", "notify"],
-  },
-];
 
 // ============ ROUTE ============
 
 export const Route = createFileRoute("/automations")({
-  component: AutomationsRoute,
+	component: AutomationsRoute,
 });
 
 function AutomationsRoute() {
-  return (
-    <AppShell active={{ route: "automations" }} title="Automatisations" crumbs={["Atelier Marchand"]}>
-      <AutomationsContent />
-    </AppShell>
-  );
+	return (
+		<AppShell
+			active={{ route: "automations" }}
+			title="Automatisations"
+			crumbs={["Atelier Marchand"]}
+		>
+			<AutomationsContent />
+		</AppShell>
+	);
 }
 
 // ============ CONTENU ============
 
 function AutomationsContent() {
-  const { data: session } = authClient.useSession();
-  const rules = useQuery(api.automations.list, session?.user ? {} : "skip");
-  const createRule = useMutation(api.automations.create);
-  const removeRule = useMutation(api.automations.remove);
+	const { data: session } = authClient.useSession();
+	const rules = useQuery(api.automations.list, session?.user ? {} : "skip");
+	const createRule = useMutation(api.automations.create);
+	const removeRule = useMutation(api.automations.remove);
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [prefill, setPrefill] = useState<{ name?: string; trigger?: string; actions?: string[] }>({});
+	const [modalOpen, setModalOpen] = useState(false);
 
-  function openModal(pre?: { name?: string; trigger?: string; actions?: string[] }) {
-    setPrefill(pre ?? {});
-    setModalOpen(true);
-  }
+	function openModal() {
+		setModalOpen(true);
+	}
 
-  async function handleCreate(name: string, trigger: string, actions: string[]) {
-    await createRule({ name, trigger, actions });
-    toast.success("Règle créée avec succès");
-    setModalOpen(false);
-  }
+	async function handleCreate(
+		name: string,
+		trigger: string,
+		actions: string[],
+	) {
+		await createRule({ name, trigger, actions });
+		toast.success("Règle créée avec succès");
+		setModalOpen(false);
+	}
 
-  async function handleRemove(ruleId: Id<"automationRules">, name: string) {
-    if (!window.confirm(`Supprimer la règle « ${name} » ?`)) return;
-    await removeRule({ ruleId });
-    toast.success("Règle supprimée");
-  }
+	async function handleRemove(ruleId: Id<"automationRules">, name: string) {
+		if (!window.confirm(`Supprimer la règle « ${name} » ?`)) return;
+		await removeRule({ ruleId });
+		toast.success("Règle supprimée");
+	}
 
-  if (rules === undefined) {
-    return (
-      <div className="view-inner">
-        <p className="text-muted text-sm">Chargement…</p>
-      </div>
-    );
-  }
+	if (rules === undefined) {
+		return (
+			<div className="tools-page">
+				<header className="mw-pagehead">
+					<div className="mw-pagehead-dotgrid" aria-hidden="true" />
+					<div className="mw-greet">
+						<div>
+							<h1 className="mw-greet-h1">
+								Automatisations <em className="serif-italic">avec règles</em>.
+							</h1>
+							<p className="mw-sub">
+								<span className="mw-sub-live">
+									<span className="ping" />
+									chargement…
+								</span>
+							</p>
+						</div>
+					</div>
+				</header>
+			</div>
+		);
+	}
 
-  const activeCount = rules.filter((r) => r.enabled).length;
-  const totalRuns = rules.reduce((acc, r) => acc + r.runCount, 0);
+	const activeCount = rules.filter((r) => r.enabled).length;
+	const totalRuns = rules.reduce((acc, r) => acc + r.runCount, 0);
 
-  return (
-    <div className="view-inner">
-      {/* En-tête */}
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div className="row" style={{ gap: 8 }}>
-            <h1 style={{ fontSize: 24, fontWeight: 500, letterSpacing: "-0.015em", margin: 0 }}>
-              Automatisations
-            </h1>
-            <span
-              className="badge"
-              style={{
-                background: "var(--accent-soft)",
-                color: "var(--accent-text)",
-                borderColor: "transparent",
-              }}
-            >
-              PRO
-            </span>
-          </div>
-          <p className="text-muted text-sm" style={{ margin: "4px 0 0" }}>
-            {activeCount} actives sur {rules.length} · {totalRuns} exécutions au total
-          </p>
-        </div>
-        <div className="row" style={{ gap: 8 }}>
-          <button className="btn btn--outline">
-            <Icon name="docs" size={13} /> Bibliothèque
-          </button>
-          <button className="btn btn--primary" onClick={() => openModal()}>
-            <Icon name="plus" size={13} /> Nouvelle règle
-          </button>
-        </div>
-      </div>
+	return (
+		<div className="tools-page">
+			{/* Page header */}
+			<header className="mw-pagehead">
+				<div className="mw-pagehead-dotgrid" aria-hidden="true" />
+				<div className="mw-greet">
+					<div>
+						<h1 className="mw-greet-h1">
+							Automatisations <em className="serif-italic">avec règles</em>.
+						</h1>
+						<p className="mw-sub">
+							<span className="mw-sub-live">
+								<span className="ping" />
+								{activeCount} active{activeCount !== 1 ? "s" : ""}
+							</span>
+							<span aria-hidden="true">·</span>
+							<span>
+								{rules.length} règle{rules.length !== 1 ? "s" : ""} configurée
+								{rules.length !== 1 ? "s" : ""}
+							</span>
+							<span aria-hidden="true">·</span>
+							<span>{totalRuns} exécutions</span>
+						</p>
+					</div>
+					<div className="tools-page-actions">
+						<button type="button" className="mw-cta" onClick={openModal}>
+							<Icon name="plus" size={14} />
+							<span>Nouvelle règle</span>
+						</button>
+					</div>
+				</div>
+			</header>
 
-      {/* Stats strip */}
-      <div className="aut-stats">
-        {[
-          { l: "Règles actives", v: activeCount, sub: `sur ${rules.length} créées` },
-          { l: "Exécutions totales", v: totalRuns, sub: "toutes règles confondues" },
-          { l: "Règles inactives", v: rules.length - activeCount, sub: "en pause" },
-          { l: "Règles configurées", v: rules.length, sub: "dans votre espace" },
-        ].map((s, i) => (
-          <div key={i} className="aut-stat">
-            <span className="aut-stat-l">{s.l}</span>
-            <span className="aut-stat-v">{s.v}</span>
-            <span className="aut-stat-sub">{s.sub}</span>
-          </div>
-        ))}
-      </div>
+			<div className="tools-body">
+				{rules.length === 0 ? (
+					<div className="rule-empty">
+						<h2 className="rule-empty-title">
+							Encore <em className="serif-italic">aucune règle</em>.
+						</h2>
+						<p className="rule-empty-sub">
+							Les règles d'automatisation déclenchent des actions quand un
+							événement survient sur tes cartes — gain de temps garanti.
+						</p>
+						<button
+							type="button"
+							className="rule-empty-cta"
+							onClick={openModal}
+						>
+							<Icon name="plus" size={14} />
+							Créer ma première règle
+						</button>
+					</div>
+				) : (
+					<div className="rule-layout">
+						{/* Colonne gauche : liste de règles */}
+						<div className="rule-list">
+							{rules.map((rule) => (
+								<RuleCard
+									key={rule._id}
+									rule={rule}
+									onRemove={() => handleRemove(rule._id, rule.name)}
+								/>
+							))}
+						</div>
 
-      {/* Templates strip */}
-      <div className="aut-templates">
-        <div
-          className="row"
-          style={{ justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}
-        >
-          <span
-            className="text-subtle text-xs"
-            style={{ textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 500 }}
-          >
-            Démarrer avec un template
-          </span>
-          <a className="text-sm" style={{ color: "var(--text-muted)", cursor: "pointer" }}>
-            Voir les {TEMPLATES.length} templates →
-          </a>
-        </div>
-        <div className="aut-templates-grid">
-          {TEMPLATES.map((t, i) => (
-            <button
-              key={i}
-              className="aut-template"
-              onClick={() => openModal({ name: t.name, trigger: t.trigger, actions: t.actions })}
-            >
-              <div className="aut-template-icon">
-                <Icon name={t.icon} size={14} />
-              </div>
-              <span style={{ fontSize: 13 }}>{t.title}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+						{/* Colonne droite : aide */}
+						<aside className="rule-help" aria-label="Comment ça marche">
+							<span className="rule-help-eyebrow">COMMENT ÇA MARCHE</span>
+							<h2 className="rule-help-title">
+								Un déclencheur, une ou plusieurs{" "}
+								<em className="serif-italic">actions</em>.
+							</h2>
+							<div className="rule-steps">
+								<div className="rule-step">
+									<span className="rule-step-num">1</span>
+									<div className="rule-step-body">
+										<span className="rule-step-title">
+											Choisis un déclencheur
+										</span>
+										<span className="rule-step-desc">
+											Création, complétion, déplacement, échéance, mention…
+										</span>
+									</div>
+								</div>
+								<div className="rule-step">
+									<span className="rule-step-num">2</span>
+									<div className="rule-step-body">
+										<span className="rule-step-title">Définis les actions</span>
+										<span className="rule-step-desc">
+											Notifier, archiver, déplacer, assigner, étiqueter,
+											commenter ou définir une échéance.
+										</span>
+									</div>
+								</div>
+								<div className="rule-step">
+									<span className="rule-step-num">3</span>
+									<div className="rule-step-body">
+										<span className="rule-step-title">Active la règle</span>
+										<span className="rule-step-desc">
+											Bascule l'interrupteur pour mettre la règle en service
+											sans toucher au code.
+										</span>
+									</div>
+								</div>
+							</div>
+							<a className="rule-help-link" href="/docs">
+								Documentation complète <Icon name="arrow" size={11} />
+							</a>
+						</aside>
+					</div>
+				)}
+			</div>
 
-      {/* Liste des règles */}
-      <div style={{ marginTop: 32 }}>
-        <div
-          className="row"
-          style={{ justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}
-        >
-          <span
-            className="text-subtle text-xs"
-            style={{ textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 500 }}
-          >
-            Vos règles
-          </span>
-          <div className="row" style={{ gap: 4 }}>
-            <button className="btn btn--ghost btn--sm">
-              <Icon name="filter" size={12} /> Filtrer
-            </button>
-            <button className="btn btn--ghost btn--sm">Trier</button>
-          </div>
-        </div>
-
-        {rules.length === 0 ? (
-          <div className="aut-empty">
-            <Icon name="bolt" size={24} />
-            <p>Aucune règle créée pour le moment</p>
-            <button className="btn btn--primary" onClick={() => openModal()}>
-              <Icon name="plus" size={13} /> Créer une règle
-            </button>
-          </div>
-        ) : (
-          <div className="col" style={{ gap: 8 }}>
-            {rules.map((rule) => (
-              <AutomationCard
-                key={rule._id}
-                rule={rule}
-                onRemove={() => handleRemove(rule._id, rule.name)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Note honnête */}
-      <p className="text-subtle text-xs" style={{ marginTop: 24, textAlign: "center" }}>
-        Les règles sont enregistrées et activables. Le moteur d'exécution automatique sera branché prochainement.
-      </p>
-
-      {/* Modale de création */}
-      {modalOpen && (
-        <CreateRuleModal
-          prefill={prefill}
-          onCreate={handleCreate}
-          onClose={() => setModalOpen(false)}
-        />
-      )}
-
-      <style>{`
-        .aut-stats {
-          display: grid; grid-template-columns: repeat(4, 1fr);
-          gap: 1px; background: var(--border);
-          border: 1px solid var(--border); border-radius: 10px;
-          overflow: hidden; margin-top: 24px;
-        }
-        .aut-stat {
-          background: var(--surface);
-          padding: 16px 18px;
-          display: flex; flex-direction: column; gap: 4px;
-        }
-        .aut-stat-l { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
-        .aut-stat-v { font-size: 28px; font-weight: 500; letter-spacing: -0.015em; font-family: var(--font-mono); line-height: 1.1; }
-        .aut-stat-sub { font-size: 11.5px; color: var(--text-subtle); }
-
-        .aut-templates { margin-top: 32px; }
-        .aut-templates-grid {
-          display: grid; grid-template-columns: repeat(3, 1fr);
-          gap: 8px;
-        }
-        .aut-template {
-          display: flex; align-items: center; gap: 10px;
-          padding: 12px 14px; background: var(--surface);
-          border: 1px solid var(--border); border-radius: 8px;
-          cursor: pointer; text-align: left;
-          transition: border-color 0.12s;
-        }
-        .aut-template:hover { border-color: var(--border-strong); }
-        .aut-template-icon {
-          width: 28px; height: 28px; border-radius: 6px;
-          background: var(--bg-soft); display: grid; place-items: center;
-          color: var(--text-muted); flex: none;
-        }
-
-        .aut-card {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          overflow: hidden;
-          transition: border-color 0.12s, box-shadow 0.12s;
-        }
-        .aut-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-xs); }
-        .aut-head {
-          display: flex; align-items: center; gap: 12px;
-          padding: 14px 18px;
-        }
-        .aut-icon {
-          width: 32px; height: 32px; border-radius: 8px;
-          display: grid; place-items: center;
-          flex: none;
-        }
-        .aut-name {
-          flex: 1; font-weight: 500; font-size: 14px;
-          letter-spacing: -0.005em; min-width: 0;
-        }
-        .aut-flow {
-          display: flex; align-items: center; gap: 0; flex-wrap: wrap;
-          padding: 12px 18px 16px;
-          border-top: 1px solid var(--border);
-          background: var(--bg-soft);
-          font-size: 12.5px;
-        }
-        .aut-flow-block {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 5px 10px;
-          background: var(--surface); border: 1px solid var(--border);
-          border-radius: 6px;
-        }
-        .aut-flow-arrow {
-          color: var(--text-subtle);
-          padding: 0 8px;
-          font-family: var(--font-mono);
-        }
-        .aut-flow-trigger {
-          color: var(--accent-text); font-weight: 500;
-          background: var(--accent-soft) !important; border-color: transparent !important;
-        }
-
-        .aut-empty {
-          display: flex; flex-direction: column; align-items: center;
-          gap: 12px; padding: 48px 24px;
-          border: 1px dashed var(--border); border-radius: 12px;
-          color: var(--text-muted); text-align: center;
-        }
-        .aut-empty p { margin: 0; font-size: 14px; }
-
-        .modal-backdrop {
-          position: fixed; inset: 0; z-index: 200;
-          background: rgba(0,0,0,0.45); backdrop-filter: blur(2px);
-          display: grid; place-items: center;
-        }
-        .modal {
-          background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 14px;
-          padding: 28px;
-          width: 480px; max-width: calc(100vw - 32px);
-          box-shadow: var(--shadow-lg, 0 20px 60px rgba(0,0,0,0.18));
-          display: flex; flex-direction: column; gap: 18px;
-        }
-        .modal-title {
-          font-size: 16px; font-weight: 600;
-          letter-spacing: -0.01em; margin: 0;
-        }
-        .modal-field { display: flex; flex-direction: column; gap: 6px; }
-        .modal-label { font-size: 12px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-        .modal-input, .modal-select {
-          width: 100%; padding: 9px 12px;
-          background: var(--bg-soft); border: 1px solid var(--border);
-          border-radius: 8px; font-size: 14px; color: var(--text);
-          outline: none; transition: border-color 0.12s;
-          box-sizing: border-box;
-        }
-        .modal-input:focus, .modal-select:focus { border-color: var(--accent); }
-        .modal-actions-grid {
-          display: grid; grid-template-columns: 1fr 1fr;
-          gap: 6px;
-        }
-        .modal-action-check {
-          display: flex; align-items: center; gap: 8px;
-          padding: 8px 10px; border-radius: 7px;
-          border: 1px solid var(--border); cursor: pointer;
-          font-size: 13px; user-select: none;
-          transition: background 0.1s, border-color 0.1s;
-        }
-        .modal-action-check.selected {
-          background: var(--accent-soft); border-color: var(--accent);
-          color: var(--accent-text);
-        }
-        .modal-footer { display: flex; justify-content: flex-end; gap: 8px; }
-      `}</style>
-    </div>
-  );
+			{modalOpen && (
+				<CreateRuleModal
+					onCreate={handleCreate}
+					onClose={() => setModalOpen(false)}
+				/>
+			)}
+		</div>
+	);
 }
 
-// ============ CARTE D'AUTOMATISATION ============
+// ============ RULE CARD ============
 
 interface ConvexRule {
-  _id: Id<"automationRules">;
-  name: string;
-  trigger: string;
-  actions: string[];
-  enabled: boolean;
-  runCount: number;
-  _creationTime: number;
+	_id: Id<"automationRules">;
+	name: string;
+	trigger: string;
+	actions: string[];
+	enabled: boolean;
+	runCount: number;
+	_creationTime: number;
 }
 
-function AutomationCard({
-  rule,
-  onRemove,
+function RuleCard({
+	rule,
+	onRemove,
 }: {
-  rule: ConvexRule;
-  onRemove: () => void;
+	rule: ConvexRule;
+	onRemove: () => void;
 }) {
-  const toggle = useMutation(api.automations.toggle);
+	const update = useMutation(api.automations.update);
+	const [menuOpen, setMenuOpen] = useState(false);
 
-  async function handleToggle() {
-    await toggle({ ruleId: rule._id });
-  }
+	async function handleToggle(e: React.MouseEvent) {
+		e.stopPropagation();
+		try {
+			await update({ ruleId: rule._id, enabled: !rule.enabled });
+		} catch {
+			toast.error("Impossible de basculer la règle");
+		}
+	}
 
-  return (
-    <div className="aut-card">
-      <div className="aut-head">
-        <div
-          className="aut-icon"
-          style={{
-            background: rule.enabled ? "var(--accent-soft)" : "var(--bg-sunken)",
-            color: rule.enabled ? "var(--accent-text)" : "var(--text-subtle)",
-          }}
-        >
-          <Icon name="bolt" size={14} />
-        </div>
-        <div className="aut-name">
-          {rule.name}
-          <div className="text-subtle text-xs" style={{ marginTop: 2, fontWeight: 400 }}>
-            exécutée {rule.runCount} fois ·{" "}
-            {rule.enabled ? "active" : "inactive"}
-          </div>
-        </div>
-        <button
-          className="btn btn--ghost btn--icon"
-          title="Supprimer"
-          onClick={onRemove}
-          style={{ color: "var(--text-muted)" }}
-        >
-          <Icon name="trash" size={13} />
-        </button>
-        <div
-          className={`toggle ${rule.enabled ? "on" : ""}`}
-          onClick={handleToggle}
-          style={{ cursor: "pointer" }}
-        />
-      </div>
-      <div className="aut-flow">
-        <span className="aut-flow-block aut-flow-trigger">
-          <Icon name={triggerIcon(rule.trigger)} size={11} />
-          {triggerLabel(rule.trigger)}
-        </span>
-        {rule.actions.map((code, i) => (
-          <Fragment key={i}>
-            <span className="aut-flow-arrow">→</span>
-            <span className="aut-flow-block">
-              <Icon
-                name={actionIcon(code)}
-                size={11}
-                style={{ color: "var(--text-subtle)" }}
-              />
-              {actionLabel(code)}
-            </span>
-          </Fragment>
-        ))}
-      </div>
-    </div>
-  );
+	return (
+		<article className={`rule-card${rule.enabled ? "" : " is-off"}`}>
+			<header className="rule-card-head">
+				<div className="rule-card-name">
+					<div className="rule-card-name-row">
+						<span>{rule.name}</span>
+						<span className={`rule-card-status${rule.enabled ? " is-on" : ""}`}>
+							{rule.enabled ? "active" : "en pause"}
+						</span>
+					</div>
+				</div>
+				<button
+					type="button"
+					className={`rule-toggle${rule.enabled ? " is-on" : ""}`}
+					onClick={handleToggle}
+					aria-pressed={rule.enabled}
+					aria-label={rule.enabled ? "Désactiver" : "Activer"}
+				/>
+				<div style={{ position: "relative" }}>
+					<button
+						type="button"
+						className="rule-menu-btn"
+						aria-label="Menu"
+						onClick={() => setMenuOpen((v) => !v)}
+					>
+						<Icon name="more" size={14} />
+					</button>
+					{menuOpen && (
+						<>
+							{/* Backdrop pour fermer au clic ailleurs */}
+							<button
+								type="button"
+								aria-label="Fermer le menu"
+								onClick={() => setMenuOpen(false)}
+								style={{
+									position: "fixed",
+									inset: 0,
+									background: "transparent",
+									border: "none",
+									zIndex: 9,
+									cursor: "default",
+								}}
+							/>
+							<div
+								style={{
+									position: "absolute",
+									top: "100%",
+									right: 0,
+									marginTop: 4,
+									background: "var(--surface)",
+									border: "1px solid var(--border-c)",
+									borderRadius: "var(--r-md)",
+									boxShadow: "var(--shadow-md)",
+									padding: 4,
+									zIndex: 10,
+									minWidth: 160,
+								}}
+							>
+								<button
+									type="button"
+									onClick={() => {
+										setMenuOpen(false);
+										onRemove();
+									}}
+									style={{
+										width: "100%",
+										background: "transparent",
+										border: "none",
+										padding: "6px 10px",
+										borderRadius: "var(--r-sm)",
+										fontSize: 12.5,
+										color: "var(--red)",
+										textAlign: "left",
+										cursor: "pointer",
+										display: "flex",
+										alignItems: "center",
+										gap: 8,
+									}}
+									onMouseEnter={(e) => {
+										e.currentTarget.style.background = "var(--surface-hover)";
+									}}
+									onMouseLeave={(e) => {
+										e.currentTarget.style.background = "transparent";
+									}}
+								>
+									<Icon name="trash" size={12} /> Supprimer
+								</button>
+							</div>
+						</>
+					)}
+				</div>
+			</header>
+
+			<div className="rule-card-body">
+				<span className="rule-chip rule-chip--label">QUAND</span>
+				<span className="rule-chip rule-chip--trigger">
+					<Icon name={triggerIcon(rule.trigger)} size={11} />
+					{triggerLabel(rule.trigger)}
+				</span>
+				<span className="rule-arrow">→</span>
+				{rule.actions.map((code, i, arr) => {
+					const occurrence = arr.slice(0, i).filter((c) => c === code).length;
+					const key = `${code}-${occurrence}`;
+					return (
+						<Fragment key={key}>
+							<span className="rule-chip">
+								<Icon name={actionIcon(code)} size={11} />
+								{actionLabel(code)}
+							</span>
+							{i < arr.length - 1 && <span className="rule-arrow">+</span>}
+						</Fragment>
+					);
+				})}
+			</div>
+
+			<footer className="rule-card-foot">
+				<span className="rule-runs">
+					Exécutée <b>{rule.runCount}</b> fois
+				</span>
+				<span className="rule-runs" style={{ color: "var(--text-subtle)" }}>
+					#{rule._id.toString().slice(-6)}
+				</span>
+			</footer>
+		</article>
+	);
 }
 
 // ============ MODALE DE CRÉATION ============
 
 function CreateRuleModal({
-  prefill,
-  onCreate,
-  onClose,
+	onCreate,
+	onClose,
 }: {
-  prefill: { name?: string; trigger?: string; actions?: string[] };
-  onCreate: (name: string, trigger: string, actions: string[]) => Promise<void>;
-  onClose: () => void;
+	onCreate: (name: string, trigger: string, actions: string[]) => Promise<void>;
+	onClose: () => void;
 }) {
-  const [name, setName] = useState(prefill.name ?? "");
-  const [trigger, setTrigger] = useState(prefill.trigger ?? TRIGGERS[0].code);
-  const [selectedActions, setSelectedActions] = useState<string[]>(prefill.actions ?? []);
-  const [saving, setSaving] = useState(false);
+	const [name, setName] = useState("");
+	const [trigger, setTrigger] = useState(TRIGGERS[0].code);
+	const [selectedActions, setSelectedActions] = useState<string[]>([]);
+	const [saving, setSaving] = useState(false);
 
-  function toggleAction(code: string) {
-    setSelectedActions((prev) =>
-      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
-    );
-  }
+	function toggleAction(code: string) {
+		setSelectedActions((prev) =>
+			prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
+		);
+	}
 
-  async function handleSubmit() {
-    if (!name.trim()) {
-      toast.error("Le nom de la règle est requis");
-      return;
-    }
-    if (selectedActions.length === 0) {
-      toast.error("Sélectionnez au moins une action");
-      return;
-    }
-    setSaving(true);
-    try {
-      await onCreate(name.trim(), trigger, selectedActions);
-    } finally {
-      setSaving(false);
-    }
-  }
+	async function handleSubmit() {
+		if (!name.trim()) {
+			toast.error("Le nom de la règle est requis");
+			return;
+		}
+		if (selectedActions.length === 0) {
+			toast.error("Sélectionne au moins une action");
+			return;
+		}
+		setSaving(true);
+		try {
+			await onCreate(name.trim(), trigger, selectedActions);
+		} finally {
+			setSaving(false);
+		}
+	}
 
-  return (
-    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <p className="modal-title">Nouvelle règle d'automatisation</p>
+	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: backdrop click is supplementary
+		<div
+			className="modal-backdrop"
+			onClick={(e) => e.target === e.currentTarget && onClose()}
+			onKeyDown={(e) => {
+				if (e.key === "Escape") onClose();
+			}}
+			style={{
+				position: "fixed",
+				inset: 0,
+				zIndex: 200,
+				background: "rgba(0,0,0,0.45)",
+				backdropFilter: "blur(2px)",
+				display: "grid",
+				placeItems: "center",
+			}}
+		>
+			<div
+				role="dialog"
+				aria-modal="true"
+				aria-label="Nouvelle règle"
+				onClick={(e) => e.stopPropagation()}
+				onKeyDown={(e) => e.stopPropagation()}
+				style={{
+					background: "var(--surface)",
+					border: "1px solid var(--border-c)",
+					borderRadius: "var(--r-2xl, 16px)",
+					padding: 28,
+					width: 480,
+					maxWidth: "calc(100vw - 32px)",
+					boxShadow: "var(--shadow-lg)",
+					display: "flex",
+					flexDirection: "column",
+					gap: 18,
+				}}
+			>
+				<h3
+					style={{
+						fontSize: 17,
+						fontWeight: 500,
+						letterSpacing: "-0.01em",
+						margin: 0,
+					}}
+				>
+					Nouvelle règle d'automatisation
+				</h3>
 
-        <div className="modal-field">
-          <label className="modal-label">Nom de la règle</label>
-          <input
-            className="modal-input"
-            placeholder="Ex. : Archiver les cartes terminées"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoFocus
-          />
-        </div>
+				<div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+					<label
+						htmlFor="rule-name"
+						style={{
+							fontSize: 11,
+							fontWeight: 500,
+							color: "var(--text-muted)",
+							textTransform: "uppercase",
+							letterSpacing: "0.06em",
+						}}
+					>
+						Nom de la règle
+					</label>
+					<input
+						id="rule-name"
+						placeholder="Ex : Archiver les cartes terminées"
+						value={name}
+						onChange={(e) => setName(e.target.value)}
+						// biome-ignore lint/a11y/noAutofocus: modale d'édition explicite, focus utile
+						autoFocus
+						style={{
+							width: "100%",
+							padding: "9px 12px",
+							background: "var(--bg-soft)",
+							border: "1px solid var(--border-c)",
+							borderRadius: "var(--r-md)",
+							fontSize: 14,
+							color: "var(--text)",
+							outline: "none",
+							boxSizing: "border-box",
+						}}
+					/>
+				</div>
 
-        <div className="modal-field">
-          <label className="modal-label">Déclencheur</label>
-          <select
-            className="modal-select"
-            value={trigger}
-            onChange={(e) => setTrigger(e.target.value)}
-          >
-            {TRIGGERS.map((t) => (
-              <option key={t.code} value={t.code}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
+				<div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+					<label
+						htmlFor="rule-trigger"
+						style={{
+							fontSize: 11,
+							fontWeight: 500,
+							color: "var(--text-muted)",
+							textTransform: "uppercase",
+							letterSpacing: "0.06em",
+						}}
+					>
+						Déclencheur
+					</label>
+					<select
+						id="rule-trigger"
+						value={trigger}
+						onChange={(e) => setTrigger(e.target.value)}
+						style={{
+							width: "100%",
+							padding: "9px 12px",
+							background: "var(--bg-soft)",
+							border: "1px solid var(--border-c)",
+							borderRadius: "var(--r-md)",
+							fontSize: 14,
+							color: "var(--text)",
+							outline: "none",
+							boxSizing: "border-box",
+						}}
+					>
+						{TRIGGERS.map((t) => (
+							<option key={t.code} value={t.code}>
+								{t.label}
+							</option>
+						))}
+					</select>
+				</div>
 
-        <div className="modal-field">
-          <label className="modal-label">Actions (sélection multiple)</label>
-          <div className="modal-actions-grid">
-            {ACTIONS.map((a) => (
-              <div
-                key={a.code}
-                className={`modal-action-check ${selectedActions.includes(a.code) ? "selected" : ""}`}
-                onClick={() => toggleAction(a.code)}
-              >
-                <Icon name={a.icon} size={12} />
-                {a.label}
-              </div>
-            ))}
-          </div>
-        </div>
+				<div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+					<span
+						style={{
+							fontSize: 11,
+							fontWeight: 500,
+							color: "var(--text-muted)",
+							textTransform: "uppercase",
+							letterSpacing: "0.06em",
+						}}
+					>
+						Actions (sélection multiple)
+					</span>
+					<div
+						style={{
+							display: "grid",
+							gridTemplateColumns: "1fr 1fr",
+							gap: 6,
+						}}
+					>
+						{ACTIONS.map((a) => {
+							const selected = selectedActions.includes(a.code);
+							return (
+								<button
+									type="button"
+									key={a.code}
+									onClick={() => toggleAction(a.code)}
+									style={{
+										display: "flex",
+										alignItems: "center",
+										gap: 8,
+										padding: "8px 10px",
+										borderRadius: "var(--r-sm)",
+										border: `1px solid ${selected ? "var(--accent)" : "var(--border-c)"}`,
+										background: selected ? "var(--accent-soft)" : "transparent",
+										color: selected ? "var(--accent-text)" : "var(--text)",
+										fontSize: 13,
+										cursor: "pointer",
+										textAlign: "left",
+									}}
+								>
+									<Icon name={a.icon} size={12} />
+									{a.label}
+								</button>
+							);
+						})}
+					</div>
+				</div>
 
-        <div className="modal-footer">
-          <button className="btn btn--ghost" onClick={onClose} disabled={saving}>
-            Annuler
-          </button>
-          <button className="btn btn--primary" onClick={handleSubmit} disabled={saving}>
-            {saving ? "Enregistrement…" : "Créer la règle"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+				<div
+					style={{
+						display: "flex",
+						justifyContent: "flex-end",
+						gap: 8,
+					}}
+				>
+					<button
+						type="button"
+						className="btn btn--ghost"
+						onClick={onClose}
+						disabled={saving}
+					>
+						Annuler
+					</button>
+					<button
+						type="button"
+						className="mw-cta"
+						onClick={handleSubmit}
+						disabled={saving}
+					>
+						{saving ? "Enregistrement…" : "Créer la règle"}
+					</button>
+				</div>
+			</div>
+		</div>
+	);
 }

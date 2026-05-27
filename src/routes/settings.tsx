@@ -1,8 +1,9 @@
+// ============ SETTINGS · Lume Éclat (Phase 3d) ============
+// Layout 2 colonnes : nav latérale sticky + panneaux Éclat.
+// Sections : Profil / Sécurité / Apparence / Notifications / Zone de danger.
+
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { authClient } from "#/lib/auth-client";
-import { AppShell } from "#/features/app/AppShell";
-import { Icon } from "#/features/app/Icon";
 import {
 	Dialog,
 	DialogContent,
@@ -11,17 +12,15 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog";
+import { AppShell } from "#/features/app/AppShell";
+import { Icon } from "#/features/app/Icon";
+import { authClient } from "#/lib/auth-client";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type TabId =
-	| "profile"
-	| "security"
-	| "appearance"
-	| "notifications"
-	| "danger";
+type TabId = "profile" | "security" | "appearance" | "notifications" | "danger";
 
 interface Tab {
 	id: TabId;
@@ -44,35 +43,31 @@ function SettingsPage() {
 
 	if (isPending || !session?.user) {
 		return (
-			<div
-				style={{
-					display: "flex",
-					minHeight: "100vh",
-					alignItems: "center",
-					justifyContent: "center",
-					background: "var(--bg)",
-				}}
-			>
-				<div
-					style={{
-						height: 4,
-						width: 128,
-						overflow: "hidden",
-						borderRadius: "var(--r-full)",
-						background: "var(--border)",
-					}}
-				>
-					<div
-						style={{
-							height: "100%",
-							width: "33%",
-							borderRadius: "var(--r-full)",
-							background: "var(--accent)",
-							animation: "pulse 1.5s ease-in-out infinite",
-						}}
-					/>
+			<AppShell active={{ route: "settings" }} title="Réglages">
+				<div className="tools-page">
+					<div style={{ padding: 48, display: "grid", placeItems: "center" }}>
+						<div
+							style={{
+								height: 4,
+								width: 128,
+								overflow: "hidden",
+								borderRadius: "var(--r-full, 999px)",
+								background: "var(--border-c)",
+							}}
+						>
+							<div
+								style={{
+									height: "100%",
+									width: "33%",
+									borderRadius: "var(--r-full, 999px)",
+									background: "var(--accent)",
+									animation: "pulse 1.5s ease-in-out infinite",
+								}}
+							/>
+						</div>
+					</div>
 				</div>
-			</div>
+			</AppShell>
 		);
 	}
 
@@ -88,30 +83,31 @@ function SettingsPage() {
 
 	return (
 		<AppShell active={{ route: "settings" }} title="Réglages">
-			<div className="view-inner" style={{ padding: 0, height: "100%" }}>
-				<div className="settings-layout">
-					{/* Navigation latérale */}
-					<aside className="settings-side">
-						<h2 className="settings-side-title">Réglages</h2>
-						{tabs.map((t) => (
-							<button
-								key={t.id}
-								className={`sidebar-item${tab === t.id ? " active" : ""}${t.id === "danger" ? " sidebar-item--danger" : ""}`}
-								onClick={() => setTab(t.id)}
-							>
-								<Icon
-									name={t.icon}
-									size={14}
-									className="sidebar-item-icon"
-								/>
-								{t.label}
-							</button>
-						))}
-					</aside>
+			<div className="tools-page">
+				<header className="mw-pagehead">
+					<div className="mw-greet">
+						<h1 className="mw-greet-h1">Réglages.</h1>
+					</div>
+				</header>
 
-					{/* Zone de contenu */}
-					<div className="settings-main">
-						<div className="settings-inner">
+				<section className="tools-body">
+					<div className="settings-grid">
+						<nav className="settings-nav" aria-label="Sections de réglages">
+							<div className="settings-nav-title">Sections</div>
+							{tabs.map((t) => (
+								<button
+									key={t.id}
+									type="button"
+									className={`settings-nav-item${tab === t.id ? " is-active" : ""}${t.id === "danger" ? " settings-nav-item--danger" : ""}`}
+									onClick={() => setTab(t.id)}
+								>
+									<span className="settings-nav-dot" aria-hidden />
+									{t.label}
+								</button>
+							))}
+						</nav>
+
+						<div className="settings-panels">
 							{tab === "profile" && (
 								<ProfilePanel
 									initialName={user.name ?? ""}
@@ -131,293 +127,13 @@ function SettingsPage() {
 							)}
 						</div>
 					</div>
-				</div>
+				</section>
 			</div>
-
-			<style>{`
-				.settings-layout {
-					display: flex;
-					height: 100%;
-					overflow: hidden;
-				}
-
-				.settings-side {
-					width: 220px;
-					flex: none;
-					background: var(--bg);
-					border-right: 1px solid var(--border);
-					padding: 20px 10px;
-					overflow-y: auto;
-				}
-
-				.settings-side-title {
-					font-size: 11px;
-					font-weight: 600;
-					margin: 0 12px 12px;
-					color: var(--text-muted);
-					text-transform: uppercase;
-					letter-spacing: 0.06em;
-				}
-
-				.settings-main {
-					flex: 1;
-					overflow-y: auto;
-					background: var(--bg);
-				}
-
-				.settings-inner {
-					max-width: 680px;
-					padding: 36px 44px 64px;
-				}
-
-				.settings-h1 {
-					font-size: 22px;
-					font-weight: 500;
-					letter-spacing: -0.015em;
-					margin: 0 0 4px;
-					color: var(--text);
-				}
-
-				.settings-section {
-					padding: 24px 0;
-					border-top: 1px solid var(--border);
-				}
-
-				.settings-section:first-of-type {
-					border-top: none;
-					padding-top: 16px;
-				}
-
-				.settings-row {
-					display: grid;
-					grid-template-columns: 200px 1fr;
-					gap: 32px;
-					padding: 14px 0;
-					align-items: start;
-				}
-
-				.settings-row-label {
-					font-size: 13.5px;
-					font-weight: 500;
-					color: var(--text);
-					padding-top: 6px;
-				}
-
-				.settings-row-hint {
-					font-size: 12.5px;
-					color: var(--text-muted);
-					margin-top: 3px;
-					line-height: 1.45;
-				}
-
-				.settings-feedback {
-					display: flex;
-					align-items: flex-start;
-					gap: 8px;
-					padding: 10px 12px;
-					border-radius: var(--r-md);
-					font-size: 13px;
-					margin-top: 4px;
-				}
-
-				.settings-feedback--error {
-					background: var(--red-soft);
-					border: 1px solid oklch(0.85 0.06 25);
-					color: var(--red);
-				}
-
-				.settings-feedback--success {
-					background: var(--green-soft);
-					border: 1px solid oklch(0.85 0.12 150);
-					color: var(--green);
-				}
-
-				.settings-req-row {
-					display: flex;
-					flex-wrap: wrap;
-					gap: 16px;
-					padding: 4px 0;
-				}
-
-				.settings-req {
-					display: inline-flex;
-					align-items: center;
-					gap: 5px;
-					font-size: 12px;
-				}
-
-				.toggle {
-					width: 32px;
-					height: 18px;
-					background: var(--border-strong);
-					border-radius: 100px;
-					position: relative;
-					cursor: pointer;
-					transition: background 0.18s;
-					flex: none;
-					border: none;
-					outline: none;
-				}
-
-				.toggle::after {
-					content: '';
-					position: absolute;
-					top: 2px;
-					left: 2px;
-					width: 14px;
-					height: 14px;
-					background: white;
-					border-radius: 50%;
-					transition: transform 0.18s;
-				}
-
-				.toggle.on { background: var(--accent); }
-				.toggle.on::after { transform: translateX(14px); }
-
-				.sidebar-item--danger {
-					color: var(--red) !important;
-				}
-
-				.sidebar-item--danger:hover,
-				.sidebar-item--danger.active {
-					background: var(--red-soft) !important;
-					color: var(--red) !important;
-				}
-
-				.settings-avatar-init {
-					width: 52px;
-					height: 52px;
-					border-radius: 50%;
-					background: linear-gradient(135deg, var(--accent) 0%, oklch(0.45 0.18 240) 100%);
-					display: grid;
-					place-items: center;
-					font-size: 20px;
-					font-weight: 600;
-					color: white;
-					flex: none;
-				}
-
-				.settings-danger-row {
-					display: flex;
-					align-items: center;
-					justify-content: space-between;
-					flex-wrap: wrap;
-					gap: 12px;
-					padding: 16px 0;
-					border-top: 1px solid var(--border);
-				}
-
-				.settings-danger-row:first-of-type {
-					border-top: none;
-				}
-
-				.settings-pw-eye {
-					position: absolute;
-					right: 0;
-					top: 0;
-					bottom: 0;
-					display: flex;
-					align-items: center;
-					padding: 0 10px;
-					background: none;
-					border: none;
-					cursor: pointer;
-					color: var(--text-muted);
-				}
-
-				.settings-pw-eye:hover { color: var(--text); }
-
-				.settings-input-wrap {
-					position: relative;
-				}
-
-				@media (max-width: 640px) {
-					.settings-side { width: 180px; }
-					.settings-inner { padding: 24px 20px 48px; }
-					.settings-row { grid-template-columns: 1fr; gap: 8px; }
-				}
-			`}</style>
 		</AppShell>
 	);
 }
 
 // ─── Composants utilitaires ─────────────────────────────────────────────────
-
-function Field({
-	id,
-	label,
-	type = "text",
-	value,
-	onChange,
-	autoComplete,
-	placeholder,
-	readOnly,
-	hint,
-	rightSlot,
-}: {
-	id: string;
-	label: string;
-	type?: string;
-	value: string;
-	onChange?: (v: string) => void;
-	autoComplete?: string;
-	placeholder?: string;
-	readOnly?: boolean;
-	hint?: string;
-	rightSlot?: React.ReactNode;
-}) {
-	return (
-		<div>
-			<label
-				htmlFor={id}
-				style={{
-					display: "block",
-					fontSize: 13,
-					fontWeight: 500,
-					marginBottom: 6,
-					color: "var(--text)",
-				}}
-			>
-				{label}
-			</label>
-			<div className="settings-input-wrap">
-				<input
-					id={id}
-					type={type}
-					autoComplete={autoComplete}
-					value={value}
-					onChange={(e) => onChange?.(e.target.value)}
-					placeholder={placeholder}
-					readOnly={readOnly}
-					className="input"
-					style={{
-						width: "100%",
-						paddingRight: rightSlot ? 40 : undefined,
-						background: readOnly ? "var(--bg-soft)" : undefined,
-						color: readOnly ? "var(--text-muted)" : undefined,
-					}}
-				/>
-				{rightSlot && (
-					<button
-						type="button"
-						className="settings-pw-eye"
-						onClick={(e) => {
-							const btn = e.currentTarget as HTMLButtonElement;
-							btn.dispatchEvent(new CustomEvent("toggle-eye", { bubbles: true }));
-						}}
-					>
-						{rightSlot}
-					</button>
-				)}
-			</div>
-			{hint && (
-				<div className="settings-row-hint" style={{ marginTop: 4 }}>
-					{hint}
-				</div>
-			)}
-		</div>
-	);
-}
 
 function Feedback({
 	kind,
@@ -429,7 +145,7 @@ function Feedback({
 	return (
 		<div
 			role="alert"
-			className={`settings-feedback settings-feedback--${kind}`}
+			className={`settings-feedback settings-feedback--${kind === "error" ? "err" : "ok"}`}
 		>
 			<span
 				style={{
@@ -454,18 +170,22 @@ function Feedback({
 	);
 }
 
-function Requirement({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+function Requirement({
+	ok,
+	children,
+}: {
+	ok: boolean;
+	children: React.ReactNode;
+}) {
 	return (
-		<span className="settings-req">
+		<span className={`settings-req${ok ? " is-ok" : ""}`}>
 			<Icon
 				name="check"
 				size={13}
 				stroke={3}
 				style={{ color: ok ? "var(--green)" : "var(--border-strong)" }}
 			/>
-			<span style={{ color: ok ? "var(--green)" : "var(--text-muted)" }}>
-				{children}
-			</span>
+			<span>{children}</span>
 		</span>
 	);
 }
@@ -474,7 +194,7 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 	return (
 		<button
 			type="button"
-			className={`toggle${on ? " on" : ""}`}
+			className={`acc-toggle${on ? " is-on" : ""}`}
 			onClick={onToggle}
 			aria-pressed={on}
 		/>
@@ -515,94 +235,86 @@ function ProfilePanel({
 	}
 
 	return (
-		<div>
-			<h1 className="settings-h1">Profil</h1>
-			<p
-				className="text-muted text-sm"
-				style={{ margin: "0 0 8px" }}
-			>
-				Tes informations personnelles, visibles dans tes tableaux et cartes.
-			</p>
+		<form onSubmit={handleSave} className="settings-panel">
+			<div className="settings-panel-head">
+				<h2 className="settings-panel-title">Profil</h2>
+				<p className="settings-panel-desc">
+					Tes informations personnelles, visibles dans tes tableaux et cartes.
+				</p>
+			</div>
 
-			<form onSubmit={handleSave}>
-				<div className="settings-section">
-					{/* Avatar */}
-					<div className="settings-row">
-						<div className="settings-row-label">Avatar</div>
-						<div className="row" style={{ gap: 14 }}>
-							<div className="settings-avatar-init">{initial}</div>
-							<div
-								className="text-muted"
-								style={{ fontSize: 13, paddingTop: 6 }}
-							>
-								Généré depuis l'initiale de ton nom.
-							</div>
+			<div className="settings-panel-body">
+				<div className="settings-field-row">
+					<div className="settings-field-label">
+						Avatar
+						<div className="settings-field-hint">Généré depuis l'initiale.</div>
+					</div>
+					<div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+						<div className="settings-avatar">{initial}</div>
+						<div className="settings-field-hint">
+							Une vraie photo de profil arrivera plus tard.
 						</div>
 					</div>
+				</div>
 
-					{/* Nom */}
-					<div className="settings-row">
-						<div className="settings-row-label">Nom affiché</div>
-						<Field
+				<div className="settings-field-row">
+					<div className="settings-field-label">Nom affiché</div>
+					<div className="settings-field">
+						<input
 							id="profile-name"
-							label=""
-							value={name}
-							onChange={setName}
+							className="input"
 							autoComplete="name"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
 							placeholder="Ton nom"
 						/>
 					</div>
+				</div>
 
-					{/* Email */}
-					<div className="settings-row">
-						<div className="settings-row-label">Adresse email</div>
-						<Field
+				<div className="settings-field-row">
+					<div className="settings-field-label">Adresse email</div>
+					<div className="settings-field">
+						<input
 							id="profile-email"
-							label=""
+							className="input"
 							type="email"
 							value={email}
 							readOnly
-							hint="L'email ne peut pas être modifié pour le moment."
+							style={{
+								background: "var(--bg-soft)",
+								color: "var(--text-muted)",
+							}}
 						/>
+						<div className="settings-field-hint">
+							L'email ne peut pas être modifié pour le moment.
+						</div>
 					</div>
 				</div>
 
-				{/* Messages */}
-				{error && (
-					<Feedback kind="error">{error}</Feedback>
-				)}
+				{error && <Feedback kind="error">{error}</Feedback>}
 				{success && (
 					<Feedback kind="success">Profil mis à jour avec succès.</Feedback>
 				)}
+			</div>
 
-				{/* Actions */}
-				<div
-					className="row"
-					style={{
-						marginTop: 24,
-						paddingTop: 24,
-						borderTop: "1px solid var(--border)",
-						gap: 8,
-						justifyContent: "flex-end",
-					}}
+			<div className="settings-panel-foot">
+				<button
+					type="button"
+					className="btn btn--ghost"
+					onClick={() => setName(initialName)}
+					disabled={!dirty || saving}
 				>
-					<button
-						type="button"
-						className="btn btn--ghost"
-						onClick={() => setName(initialName)}
-					>
-						Annuler
-					</button>
-					<button
-						type="submit"
-						className="btn btn--primary"
-						disabled={!dirty || saving}
-					>
-						{saving ? "Enregistrement…" : "Enregistrer"}
-					</button>
-				</div>
-			</form>
-		</div>
+					Annuler
+				</button>
+				<button
+					type="submit"
+					className="btn btn--accent"
+					disabled={!dirty || saving}
+				>
+					{saving ? "Enregistrement…" : "Enregistrer"}
+				</button>
+			</div>
+		</form>
 	);
 }
 
@@ -648,115 +360,91 @@ function SecurityPanel() {
 	}
 
 	return (
-		<div>
-			<h1 className="settings-h1">Sécurité</h1>
-			<p className="text-muted text-sm" style={{ margin: "0 0 8px" }}>
-				Change ton mot de passe. Les autres sessions seront déconnectées.
-			</p>
+		<form onSubmit={handleSave} className="settings-panel">
+			<div className="settings-panel-head">
+				<h2 className="settings-panel-title">Sécurité</h2>
+				<p className="settings-panel-desc">
+					Change ton mot de passe. Les autres sessions seront déconnectées.
+				</p>
+			</div>
 
-			<form onSubmit={handleSave}>
-				<div className="settings-section">
-					{/* Mot de passe actuel */}
-					<div className="settings-row">
-						<div className="settings-row-label">
-							Mot de passe actuel
-						</div>
-						<div className="settings-input-wrap">
-							<input
-								id="pw-current"
-								type={showPw ? "text" : "password"}
-								autoComplete="current-password"
-								value={current}
-								onChange={(e) => setCurrent(e.target.value)}
-								placeholder="••••••••"
-								className="input"
-								style={{ width: "100%", paddingRight: 40 }}
-							/>
-							<button
-								type="button"
-								className="settings-pw-eye"
-								onClick={() => setShowPw((v) => !v)}
-								aria-label={showPw ? "Masquer" : "Afficher"}
-							>
-								<Icon name="eye" size={15} />
-							</button>
-						</div>
-					</div>
-
-					{/* Nouveau mot de passe */}
-					<div className="settings-row">
-						<div className="settings-row-label">
-							Nouveau mot de passe
-						</div>
+			<div className="settings-panel-body">
+				<div className="settings-field-row">
+					<div className="settings-field-label">Mot de passe actuel</div>
+					<div className="settings-input-wrap">
 						<input
-							id="pw-next"
+							id="pw-current"
 							type={showPw ? "text" : "password"}
-							autoComplete="new-password"
-							value={next}
-							onChange={(e) => setNext(e.target.value)}
-							placeholder="8 caractères minimum"
+							autoComplete="current-password"
+							value={current}
+							onChange={(e) => setCurrent(e.target.value)}
+							placeholder="••••••••"
 							className="input"
-							style={{ width: "100%" }}
+							style={{ paddingRight: 40 }}
 						/>
-					</div>
-
-					{/* Confirmation */}
-					<div className="settings-row">
-						<div className="settings-row-label">
-							Confirme le nouveau mot de passe
-						</div>
-						<input
-							id="pw-confirm"
-							type={showPw ? "text" : "password"}
-							autoComplete="new-password"
-							value={confirm}
-							onChange={(e) => setConfirm(e.target.value)}
-							placeholder="Retape le mot de passe"
-							className="input"
-							style={{ width: "100%" }}
-						/>
+						<button
+							type="button"
+							className="settings-pw-eye"
+							onClick={() => setShowPw((v) => !v)}
+							aria-label={showPw ? "Masquer" : "Afficher"}
+						>
+							<Icon name="eye" size={15} />
+						</button>
 					</div>
 				</div>
 
-				{/* Indicateurs de validité */}
-				<div className="settings-req-row">
-					<Requirement ok={nextOk}>Au moins 8 caractères</Requirement>
-					<Requirement ok={matchOk}>
-						Les deux mots de passe correspondent
-					</Requirement>
+				<div className="settings-field-row">
+					<div className="settings-field-label">Nouveau mot de passe</div>
+					<input
+						id="pw-next"
+						type={showPw ? "text" : "password"}
+						autoComplete="new-password"
+						value={next}
+						onChange={(e) => setNext(e.target.value)}
+						placeholder="8 caractères minimum"
+						className="input"
+					/>
 				</div>
 
-				{/* Messages */}
-				{error && (
-					<div style={{ marginTop: 12 }}>
-						<Feedback kind="error">{error}</Feedback>
+				<div className="settings-field-row">
+					<div className="settings-field-label">Confirme le mot de passe</div>
+					<input
+						id="pw-confirm"
+						type={showPw ? "text" : "password"}
+						autoComplete="new-password"
+						value={confirm}
+						onChange={(e) => setConfirm(e.target.value)}
+						placeholder="Retape le mot de passe"
+						className="input"
+					/>
+				</div>
+
+				<div className="settings-field-row">
+					<div className="settings-field-label">Critères</div>
+					<div className="settings-req-row">
+						<Requirement ok={nextOk}>Au moins 8 caractères</Requirement>
+						<Requirement ok={matchOk}>
+							Les mots de passe correspondent
+						</Requirement>
 					</div>
-				)}
+				</div>
+
+				{error && <Feedback kind="error">{error}</Feedback>}
 				{success && (
-					<div style={{ marginTop: 12 }}>
-						<Feedback kind="success">Mot de passe mis à jour.</Feedback>
-					</div>
+					<Feedback kind="success">Mot de passe mis à jour.</Feedback>
 				)}
+			</div>
 
-				<div
-					className="row"
-					style={{
-						marginTop: 24,
-						paddingTop: 24,
-						borderTop: "1px solid var(--border)",
-						justifyContent: "flex-end",
-					}}
+			<div className="settings-panel-foot">
+				<button
+					type="submit"
+					className="btn btn--accent"
+					disabled={!canSubmit || saving}
 				>
-					<button
-						type="submit"
-						className="btn btn--primary"
-						disabled={!canSubmit || saving}
-					>
-						{saving ? "Mise à jour…" : "Mettre à jour le mot de passe"}
-					</button>
-				</div>
-			</form>
-		</div>
+					{saving ? "Mise à jour…" : "Mettre à jour"}
+				</button>
+			</div>
+		</form>
 	);
 }
 
@@ -776,53 +464,30 @@ function AppearancePanel() {
 	const [reducedMotion, setReducedMotion] = useState(false);
 
 	return (
-		<div>
-			<h1 className="settings-h1">Apparence</h1>
-			<p className="text-muted text-sm" style={{ margin: "0 0 8px" }}>
-				Personnalise l'affichage de Flowboard. Ces préférences restent locales.
-			</p>
+		<div className="settings-panel">
+			<div className="settings-panel-head">
+				<h2 className="settings-panel-title">Apparence</h2>
+				<p className="settings-panel-desc">
+					Personnalise l'affichage de Flowboard. Ces préférences restent
+					locales.
+				</p>
+			</div>
 
-			<div className="settings-section">
-				{/* Thème */}
-				<div className="settings-row">
-					<div className="settings-row-label">
+			<div className="settings-panel-body">
+				<div className="settings-field-row">
+					<div className="settings-field-label">
 						Thème
-						<div className="settings-row-hint">Apparence générale de l'interface</div>
+						<div className="settings-field-hint">
+							Apparence générale de l'interface
+						</div>
 					</div>
-					<div
-						className="row"
-						style={{
-							padding: 3,
-							background: "var(--bg-soft)",
-							borderRadius: 8,
-							width: "fit-content",
-							gap: 0,
-						}}
-					>
+					<div className="acc-segmented">
 						{THEMES.map((t) => (
 							<button
 								key={t.id}
 								type="button"
 								onClick={() => setTheme(t.id)}
-								style={{
-									padding: "5px 16px",
-									border: "none",
-									borderRadius: 6,
-									background:
-										theme === t.id
-											? "var(--surface)"
-											: "transparent",
-									boxShadow:
-										theme === t.id ? "var(--shadow-xs)" : "none",
-									fontSize: 13,
-									fontWeight: 500,
-									color:
-										theme === t.id
-											? "var(--text)"
-											: "var(--text-muted)",
-									cursor: "pointer",
-									transition: "all 0.15s",
-								}}
+								className={`acc-segmented-item${theme === t.id ? " is-active" : ""}`}
 							>
 								{t.label}
 							</button>
@@ -830,15 +495,14 @@ function AppearancePanel() {
 					</div>
 				</div>
 
-				{/* Mode compact */}
-				<div className="settings-row">
-					<div className="settings-row-label">
+				<div className="settings-field-row">
+					<div className="settings-field-label">
 						Mode compact
-						<div className="settings-row-hint">
-							Réduit l'espacement pour afficher plus de contenu
+						<div className="settings-field-hint">
+							Réduit l'espacement pour afficher plus de contenu.
 						</div>
 					</div>
-					<div className="row" style={{ gap: 12 }}>
+					<div style={{ display: "flex", gap: 12, alignItems: "center" }}>
 						<Toggle
 							on={compactMode}
 							onToggle={() => setCompactMode((v) => !v)}
@@ -849,15 +513,14 @@ function AppearancePanel() {
 					</div>
 				</div>
 
-				{/* Mouvement réduit */}
-				<div className="settings-row">
-					<div className="settings-row-label">
+				<div className="settings-field-row">
+					<div className="settings-field-label">
 						Réduire les animations
-						<div className="settings-row-hint">
-							Pour les personnes sensibles aux mouvements
+						<div className="settings-field-hint">
+							Pour les personnes sensibles aux mouvements.
 						</div>
 					</div>
-					<div className="row" style={{ gap: 12 }}>
+					<div style={{ display: "flex", gap: 12, alignItems: "center" }}>
 						<Toggle
 							on={reducedMotion}
 							onToggle={() => setReducedMotion((v) => !v)}
@@ -891,13 +554,37 @@ interface NotifState {
 	marketing: boolean;
 }
 
-const NOTIF_ROWS: { label: string; key: NotifKey }[] = [
-	{ label: "Mention dans un commentaire", key: "mention" },
-	{ label: "Carte assignée", key: "assigned" },
-	{ label: "Carte arrivée à échéance", key: "due" },
-	{ label: "Résumé quotidien", key: "daily" },
-	{ label: "Résumé hebdomadaire", key: "weekly" },
-	{ label: "Nouveautés produit", key: "marketing" },
+const NOTIF_ROWS: { label: string; key: NotifKey; hint: string }[] = [
+	{
+		label: "Mention dans un commentaire",
+		key: "mention",
+		hint: "Quand quelqu'un te cite avec @",
+	},
+	{
+		label: "Carte assignée",
+		key: "assigned",
+		hint: "Quand on t'attribue une carte",
+	},
+	{
+		label: "Carte arrivée à échéance",
+		key: "due",
+		hint: "Le jour J et la veille",
+	},
+	{
+		label: "Résumé quotidien",
+		key: "daily",
+		hint: "Email à 8h, du lundi au vendredi",
+	},
+	{
+		label: "Résumé hebdomadaire",
+		key: "weekly",
+		hint: "Email tous les lundis",
+	},
+	{
+		label: "Nouveautés produit",
+		key: "marketing",
+		hint: "Au maximum une fois par mois",
+	},
 ];
 
 function NotificationsPanel() {
@@ -915,22 +602,25 @@ function NotificationsPanel() {
 	}
 
 	return (
-		<div>
-			<h1 className="settings-h1">Notifications</h1>
-			<p className="text-muted text-sm" style={{ margin: "0 0 8px" }}>
-				Choisis quand on t'interrompt — et comment.
-			</p>
+		<div className="settings-panel">
+			<div className="settings-panel-head">
+				<h2 className="settings-panel-title">Notifications</h2>
+				<p className="settings-panel-desc">
+					Choisis quand on t'interrompt — et comment.
+				</p>
+			</div>
 
-			<div className="settings-section">
-				{NOTIF_ROWS.map(({ label, key }) => (
-					<div className="settings-row" key={key}>
-						<div className="settings-row-label">{label}</div>
-						<div className="row" style={{ gap: 12 }}>
+			<div className="settings-panel-body">
+				{NOTIF_ROWS.map(({ label, key, hint }) => (
+					<div className="settings-field-row" key={key}>
+						<div className="settings-field-label">
+							{label}
+							<div className="settings-field-hint">{hint}</div>
+						</div>
+						<div style={{ display: "flex", gap: 12, alignItems: "center" }}>
 							<Toggle on={notifs[key]} onToggle={() => toggle(key)} />
 							<span className="text-muted text-sm">
-								{notifs[key]
-									? "Activé · email + dans l'app"
-									: "Désactivé"}
+								{notifs[key] ? "Activé · email + in-app" : "Désactivé"}
 							</span>
 						</div>
 					</div>
@@ -957,64 +647,46 @@ function DangerPanel({
 	}
 
 	return (
-		<div>
-			<h1 className="settings-h1" style={{ color: "var(--red)" }}>
-				Zone de danger
-			</h1>
-			<p className="text-muted text-sm" style={{ margin: "0 0 8px" }}>
-				Actions définitives. À utiliser avec précaution.
-			</p>
+		<div className="danger-zone">
+			<div className="settings-panel-head">
+				<h2 className="settings-panel-title">Zone de danger</h2>
+				<p className="settings-panel-desc">
+					Actions définitives. À utiliser avec précaution.
+				</p>
+			</div>
 
-			<div className="settings-section">
-				{/* Déconnexion */}
-				<div className="settings-danger-row" style={{ borderTop: "none" }}>
-					<div>
-						<div style={{ fontSize: 14, fontWeight: 500, color: "var(--text)" }}>
-							Se déconnecter
-						</div>
-						<div className="settings-row-hint">
-							Ferme ta session sur cet appareil.
-						</div>
+			<div className="danger-row">
+				<div>
+					<div className="danger-row-title">Se déconnecter</div>
+					<div className="danger-row-desc">
+						Ferme ta session sur cet appareil.
 					</div>
-					<button
-						type="button"
-						className="btn btn--outline"
-						onClick={() => void handleSignOut()}
-					>
-						<Icon name="arrow" size={14} />
-						Se déconnecter
-					</button>
 				</div>
+				<button
+					type="button"
+					className="btn btn--outline"
+					onClick={() => void handleSignOut()}
+				>
+					<Icon name="arrow" size={14} />
+					Se déconnecter
+				</button>
+			</div>
 
-				{/* Suppression de compte */}
-				<div className="settings-danger-row">
-					<div>
-						<div
-							style={{
-								fontSize: 14,
-								fontWeight: 500,
-								color: "var(--red)",
-							}}
-						>
-							Supprimer mon compte
-						</div>
-						<div className="settings-row-hint">
-							Efface ton compte et tes données. Action irréversible.
-						</div>
+			<div className="danger-row">
+				<div>
+					<div className="danger-row-title is-red">Supprimer mon compte</div>
+					<div className="danger-row-desc">
+						Efface ton compte et tes données. Action irréversible.
 					</div>
-					<button
-						type="button"
-						className="btn btn--outline"
-						style={{
-							color: "var(--red)",
-							borderColor: "oklch(0.78 0.10 25)",
-						}}
-						onClick={() => setDeleteOpen(true)}
-					>
-						<Icon name="trash" size={14} />
-						Supprimer le compte…
-					</button>
 				</div>
+				<button
+					type="button"
+					className="btn btn--danger"
+					onClick={() => setDeleteOpen(true)}
+				>
+					<Icon name="trash" size={14} />
+					Supprimer…
+				</button>
 			</div>
 
 			<DeleteAccountDialog
@@ -1079,20 +751,14 @@ function DeleteAccountDialog({
 					<div>
 						<label
 							htmlFor="del-confirm"
-							style={{
-								display: "block",
-								fontSize: 13,
-								fontWeight: 500,
-								marginBottom: 6,
-								color: "var(--text)",
-							}}
+							className="label"
+							style={{ color: "var(--text)" }}
 						>
 							Tape ton email pour confirmer
 						</label>
 						<input
 							id="del-confirm"
 							className="input"
-							style={{ width: "100%" }}
 							value={confirmText}
 							onChange={(e) => setConfirmText(e.target.value)}
 							placeholder={email}
@@ -1102,13 +768,8 @@ function DeleteAccountDialog({
 					<div>
 						<label
 							htmlFor="del-password"
-							style={{
-								display: "block",
-								fontSize: 13,
-								fontWeight: 500,
-								marginBottom: 6,
-								color: "var(--text)",
-							}}
+							className="label"
+							style={{ color: "var(--text)" }}
 						>
 							Mot de passe
 						</label>
@@ -1117,7 +778,6 @@ function DeleteAccountDialog({
 							type="password"
 							autoComplete="current-password"
 							className="input"
-							style={{ width: "100%" }}
 							value={password}
 							onChange={(e) => setPassword(e.target.value)}
 							placeholder="••••••••"
@@ -1137,13 +797,7 @@ function DeleteAccountDialog({
 					</button>
 					<button
 						type="button"
-						className="btn"
-						style={{
-							background: "var(--red)",
-							color: "white",
-							opacity: !canDelete || deleting ? 0.5 : 1,
-							cursor: !canDelete || deleting ? "not-allowed" : "pointer",
-						}}
+						className="btn btn--danger-solid"
 						disabled={!canDelete || deleting}
 						onClick={() => void handleDelete()}
 					>
