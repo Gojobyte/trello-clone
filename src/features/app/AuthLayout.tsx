@@ -1,88 +1,97 @@
 import { Link } from "@tanstack/react-router";
-import { Avatar } from "./primitives";
 import { BrandMark } from "./MarketingShell";
+import { Avatar } from "./primitives";
 
 // Mise en page partagée des écrans de connexion / inscription (design gestion-pro).
 export function AuthLayout({
-  switchLink,
-  children,
+	switchLink,
+	children,
 }: {
-  switchLink: React.ReactNode;
-  children: React.ReactNode;
+	switchLink: React.ReactNode;
+	children: React.ReactNode;
 }) {
-  return (
-    <div className="auth">
-      <header className="auth-nav">
-        <Link to="/" className="row" style={{ gap: 8 }}>
-          <BrandMark />
-          <span style={{ fontWeight: 600, letterSpacing: "-0.01em" }}>
-            Flowboard
-          </span>
-        </Link>
-        {switchLink}
-      </header>
+	return (
+		<div className="auth">
+			<header className="auth-nav">
+				<Link to="/" className="row" style={{ gap: 8 }}>
+					<BrandMark />
+					<span style={{ fontWeight: 600, letterSpacing: "-0.01em" }}>
+						Flowboard
+					</span>
+				</Link>
+				{switchLink}
+			</header>
 
-      <div className="auth-grid">
-        <div className="auth-form-side">{children}</div>
+			<div className="auth-grid">
+				<div className="auth-form-side">{children}</div>
 
-        <aside className="auth-aside">
-          <div className="auth-aside-inner">
-            <blockquote className="auth-quote">
-              <span
-                style={{
-                  fontSize: 40,
-                  color: "var(--accent)",
-                  fontFamily: "Georgia, serif",
-                  lineHeight: 0,
-                  position: "relative",
-                  top: 12,
-                }}
-              >
-                "
-              </span>
-              <span>
-                On a testé trois outils avant Flowboard. C'est le premier où le
-                board et le calendrier partagent vraiment les mêmes cartes. Ça
-                change tout pour notre standup du lundi.
-              </span>
-            </blockquote>
-            <div className="row" style={{ gap: 12, marginTop: 24 }}>
-              <Avatar user="u3" size="lg" />
-              <div>
-                <div style={{ fontWeight: 500, fontSize: 14 }}>
-                  Claire Dubois
-                </div>
-                <div className="text-subtle text-sm">
-                  Head of Product, Studio Nord
-                </div>
-              </div>
-            </div>
+				<aside className="auth-aside">
+					<div className="auth-aside-inner">
+						<blockquote className="auth-quote">
+							<span
+								style={{
+									fontSize: 40,
+									color: "var(--accent)",
+									fontFamily: "Georgia, serif",
+									lineHeight: 0,
+									position: "relative",
+									top: 12,
+								}}
+							>
+								"
+							</span>
+							<span>
+								On a testé trois outils avant Flowboard. C'est le premier où le
+								board et le calendrier partagent vraiment les mêmes cartes. Ça
+								change tout pour notre standup du lundi.
+							</span>
+						</blockquote>
+						<div className="row" style={{ gap: 12, marginTop: 24 }}>
+							<Avatar user="u3" size="lg" />
+							<div>
+								<div style={{ fontWeight: 500, fontSize: 14 }}>
+									Claire Dubois
+								</div>
+								<div className="text-subtle text-sm">
+									Head of Product, Studio Nord
+								</div>
+							</div>
+						</div>
 
-            <div className="auth-aside-meta">
-              <div>
-                <div className="font-mono" style={{ fontSize: 28, fontWeight: 500 }}>
-                  124
-                </div>
-                <div className="text-subtle text-sm">équipes en beta</div>
-              </div>
-              <div>
-                <div className="font-mono" style={{ fontSize: 28, fontWeight: 500 }}>
-                  v1.2
-                </div>
-                <div className="text-subtle text-sm">depuis mars 2026</div>
-              </div>
-              <div>
-                <div className="font-mono" style={{ fontSize: 28, fontWeight: 500 }}>
-                  Discord
-                </div>
-                <div className="text-subtle text-sm">communauté ouverte</div>
-              </div>
-            </div>
-          </div>
-        </aside>
-      </div>
+						<div className="auth-aside-meta">
+							<div>
+								<div
+									className="font-mono"
+									style={{ fontSize: 28, fontWeight: 500 }}
+								>
+									124
+								</div>
+								<div className="text-subtle text-sm">équipes en beta</div>
+							</div>
+							<div>
+								<div
+									className="font-mono"
+									style={{ fontSize: 28, fontWeight: 500 }}
+								>
+									v1.2
+								</div>
+								<div className="text-subtle text-sm">depuis mars 2026</div>
+							</div>
+							<div>
+								<div
+									className="font-mono"
+									style={{ fontSize: 28, fontWeight: 500 }}
+								>
+									Discord
+								</div>
+								<div className="text-subtle text-sm">communauté ouverte</div>
+							</div>
+						</div>
+					</div>
+				</aside>
+			</div>
 
-      <style>{`
+			<style>{`
         .auth {
           min-height: 100vh; background: var(--bg);
           display: flex; flex-direction: column;
@@ -132,6 +141,6 @@ export function AuthLayout({
           .auth-aside { display: none; }
         }
       `}</style>
-    </div>
-  );
+		</div>
+	);
 }
