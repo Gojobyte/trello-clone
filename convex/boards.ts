@@ -4,6 +4,49 @@ import type { Id } from './_generated/dataModel'
 import { requireUser } from './lib_auth'
 import { requireBoardAccess, requireBoardOwner } from './lib_board_access'
 
+// Palettes alignées avec src/lib/board-backgrounds.ts.
+// Sert à attribuer un background aléatoire si l'utilisateur n'en choisit pas.
+const RANDOM_BG_COLORS = [
+  'sky',
+  'indigo',
+  'emerald',
+  'amber',
+  'rose',
+  'violet',
+  'teal',
+  'slate',
+] as const
+const RANDOM_BG_PHOTOS = [
+  'mountain-lake',
+  'snowy-peak',
+  'tropical-beach',
+  'milky-way',
+  'city-night',
+  'northern-lights',
+  'ocean-wave',
+  'misty-forest',
+  'desert-dunes',
+  'abstract-blue',
+  'abstract-pink',
+  'warm-sunset',
+] as const
+
+// Tire un background aléatoire : 70% chance d'un gradient, 30% d'une photo.
+// Si l'utilisateur a déjà passé un color ou backgroundImage, on respecte son choix.
+function pickRandomBackground(args: {
+  color?: string
+  backgroundImage?: string
+}): { color?: string; backgroundImage?: string } {
+  if (args.color || args.backgroundImage) return args
+  const usePhoto = Math.random() < 0.3
+  if (usePhoto) {
+    const idx = Math.floor(Math.random() * RANDOM_BG_PHOTOS.length)
+    return { backgroundImage: RANDOM_BG_PHOTOS[idx] }
+  }
+  const idx = Math.floor(Math.random() * RANDOM_BG_COLORS.length)
+  return { color: RANDOM_BG_COLORS[idx] }
+}
+
 export const toggleStar = mutation({
   args: { boardId: v.id('boards') },
   handler: async (ctx, args) => {
@@ -122,11 +165,16 @@ export const create = mutation({
         .unique()
       if (!membership) throw new Error('Unauthorized workspace')
     }
+    // Background aléatoire si l'utilisateur n'en a pas choisi (UX "joyeuse")
+    const bg = pickRandomBackground({
+      color: args.color,
+      backgroundImage: args.backgroundImage,
+    })
     const boardId = await ctx.db.insert('boards', {
       name: args.name,
       description: args.description,
-      color: args.color,
-      backgroundImage: args.backgroundImage,
+      color: bg.color,
+      backgroundImage: bg.backgroundImage,
       ownerId: user._id,
       workspaceId: args.workspaceId,
     })

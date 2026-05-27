@@ -1,0 +1,178 @@
+/* ════════════════════════════════════════════════════════════════
+   BOARD PAGE · TRAITEMENT GLASS DES VUES
+   ────────────────────────────────────────────────────────────────
+   Quand le board a un background coloré ou photo (.board-page),
+   les conteneurs des vues (Kanban / Calendar / Table / Timeline)
+   deviennent semi-transparents + blur pour laisser respirer le fond
+   sans casser la lisibilité.
+
+   Hiérarchie de transparence :
+   - Conteneur extérieur (column / cal-card / table-wrap / gantt)
+     = 78-86% opaque, blur(14px) → laisse passer la teinte du board
+   - Cartes / cellules (kcard / cal-cell / table row / gantt-bar)
+     = 92-96% opaque → bonne lisibilité du texte
+   - Sub-header déjà transparent (color-mix dans board-kanban.css)
+
+   Le contraste avec le fond est ainsi RÉDUIT (les blocs blancs durs
+   deviennent des plaques teintées du board) sans sacrifier le confort
+   de lecture sur les cartes elles-mêmes.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── KANBAN ────────────────────────────────────────────────── */
+.board-page .column {
+  background: rgba(255, 254, 254, 0.82);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 16px -4px rgba(11, 13, 18, 0.12);
+}
+.board-page .kcard {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(11, 13, 18, 0.06);
+}
+.board-page .kcard:hover {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(11, 13, 18, 0.12);
+}
+.board-page .column-add button {
+  background: rgba(255, 255, 255, 0.4);
+}
+.board-page .column-add button:hover {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+/* Dark theme : on inverse, ink semi-opaque sur board background */
+:root[data-theme="dark"] .board-page .column {
+  background: rgba(11, 13, 18, 0.68);
+  border: 1px solid rgba(250, 250, 245, 0.08);
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.45);
+}
+:root[data-theme="dark"] .board-page .kcard {
+  background: rgba(24, 28, 38, 0.88);
+  border: 1px solid rgba(250, 250, 245, 0.10);
+}
+:root[data-theme="dark"] .board-page .kcard:hover {
+  background: rgba(24, 28, 38, 0.96);
+  border-color: rgba(250, 250, 245, 0.18);
+}
+
+/* ── CALENDAR ──────────────────────────────────────────────── */
+.board-page .cal-card {
+  background: rgba(255, 254, 254, 0.84);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+.board-page .cal-cell {
+  background: rgba(255, 255, 255, 0.7);
+}
+.board-page .cal-cell:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+.board-page .cal-cell.is-out {
+  background: rgba(255, 255, 255, 0.3);
+}
+.board-page .cal-event {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+:root[data-theme="dark"] .board-page .cal-card {
+  background: rgba(11, 13, 18, 0.68);
+  border-color: rgba(250, 250, 245, 0.08);
+}
+:root[data-theme="dark"] .board-page .cal-cell {
+  background: rgba(24, 28, 38, 0.6);
+}
+:root[data-theme="dark"] .board-page .cal-cell:hover {
+  background: rgba(24, 28, 38, 0.86);
+}
+:root[data-theme="dark"] .board-page .cal-cell.is-out {
+  background: rgba(11, 13, 18, 0.3);
+}
+
+/* ── TABLE ─────────────────────────────────────────────────── */
+.board-page .table-wrap {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.board-page .table-scroll {
+  background: rgba(255, 254, 254, 0.84);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.board-page .tbl thead {
+  background: rgba(255, 254, 254, 0.92);
+}
+.board-page .tbl tbody tr {
+  background: transparent;
+}
+.board-page .tbl tbody tr:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+.board-page .tbl .pinned {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+:root[data-theme="dark"] .board-page .table-scroll {
+  background: rgba(11, 13, 18, 0.68);
+  border-color: rgba(250, 250, 245, 0.08);
+}
+:root[data-theme="dark"] .board-page .tbl thead {
+  background: rgba(11, 13, 18, 0.84);
+}
+:root[data-theme="dark"] .board-page .tbl tbody tr:hover {
+  background: rgba(24, 28, 38, 0.5);
+}
+:root[data-theme="dark"] .board-page .tbl .pinned {
+  background: rgba(24, 28, 38, 0.86);
+}
+
+/* ── TIMELINE ──────────────────────────────────────────────── */
+.board-page .gantt-wrap,
+.board-page .gantt {
+  background: rgba(255, 254, 254, 0.84);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: var(--r-lg);
+}
+.board-page .gantt-rail {
+  background: rgba(255, 255, 255, 0.55);
+  border-right: 1px solid rgba(11, 13, 18, 0.08);
+}
+.board-page .gantt-canvas {
+  background: transparent;
+}
+.board-page .gantt-bar {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(11, 13, 18, 0.06);
+}
+
+:root[data-theme="dark"] .board-page .gantt-wrap,
+:root[data-theme="dark"] .board-page .gantt {
+  background: rgba(11, 13, 18, 0.68);
+  border-color: rgba(250, 250, 245, 0.08);
+}
+:root[data-theme="dark"] .board-page .gantt-rail {
+  background: rgba(24, 28, 38, 0.55);
+  border-right-color: rgba(250, 250, 245, 0.08);
+}
+:root[data-theme="dark"] .board-page .gantt-bar {
+  background: rgba(24, 28, 38, 0.92);
+  border-color: rgba(250, 250, 245, 0.08);
+}
+
+/* ── VOILE GLOBAL plus DOUX ────────────────────────────────────
+   Le voile noir existant (.absolute inset-0 bg-black/10) est un peu
+   sombre quand on a un background coloré pétant. On le neutralise
+   et on laisse les vues elles-mêmes gérer le contraste via blur. */
+.board-page > .absolute.inset-0.bg-black\/10 {
+  background: rgba(11, 13, 18, 0.04);
+}
+:root[data-theme="dark"] .board-page > .absolute.inset-0.bg-black\/10 {
+  background: rgba(0, 0, 0, 0.18);
+}
