@@ -55,6 +55,7 @@ import { NotificationBell } from "#/features/board/shared/NotificationBell";
 import { ShareBoardDialog } from "#/features/board/shared/ShareBoardDialog";
 import { CalendarView } from "#/features/board/views/CalendarView";
 import { TableView } from "#/features/board/views/TableView";
+import { TimelineView } from "#/features/board/views/TimelineView";
 import { FlowboardLogoFull } from "#/features/shared/FlowboardLogo";
 import { GlobalSearch } from "#/features/shared/GlobalSearch";
 import { authClient } from "#/lib/auth-client";
@@ -568,6 +569,9 @@ function BoardView({
 			)}
 			{view === "calendar" && (
 				<CalendarView cards={filteredCards} lists={sortedLists} />
+			)}
+			{view === "timeline" && (
+				<TimelineView cards={filteredCards} />
 			)}
 
 			{/* Vue Kanban (par défaut) */}

@@ -3,6 +3,9 @@
 /* Design tokens Atlassian — conservés pour les écrans board encore en transition */
 @import './atlassian-tokens.css';
 @import './styles/board-kanban.css';
+@import './styles/board-calendar.css';
+@import './styles/board-table.css';
+@import './styles/board-timeline.css';
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 @import 'tw-animate-css';

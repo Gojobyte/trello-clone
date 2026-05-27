@@ -6,7 +6,7 @@ import {
 	Table as TableIcon,
 } from "lucide-react";
 
-export type BoardViewMode = "kanban" | "table" | "calendar";
+export type BoardViewMode = "kanban" | "table" | "calendar" | "timeline";
 
 export function BoardFooter({
 	view,
