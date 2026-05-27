@@ -2,6 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
 /* Design tokens Atlassian — conservés pour les écrans board encore en transition */
 @import './atlassian-tokens.css';
+@import './styles/board-kanban.css';
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 @import 'tw-animate-css';

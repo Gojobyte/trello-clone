@@ -28,6 +28,18 @@ import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import { SortableCardItem } from "../card/CardItem";
 
+// Devine une couleur de "dot" pour la colonne en fonction du nom (heuristique
+// FR/EN). Renvoie un token pour `data-color` consommé par .column-dot.
+function dotColorForListName(name: string): string {
+	const n = name.toLowerCase();
+	if (/(done|terminé|fini|fait|completed|✓)/.test(n)) return "teal";
+	if (/(block|bloqu|urgent|critical|🔥)/.test(n)) return "ember";
+	if (/(doing|cours|wip|progress|en\s*cours)/.test(n)) return "amber";
+	if (/(review|relecture|valid)/.test(n)) return "plum";
+	if (/(backlog|todo|à\s*faire|ideas?|idée)/.test(n)) return "bone";
+	return "bone";
+}
+
 export function SortableListColumn({
 	list,
 	cards,
@@ -112,12 +124,22 @@ export function ListColumn({
 
 	const cardIds = cards.map((c) => c._id);
 
+	// Couleur du dot et progress de la liste (Phase 3b — Lume Éclat).
+	// Heuristique : nom → couleur (backlog=bone, doing/cours=amber, done/terminé=teal,
+	// blocked/bloqué=ember, review=plum).
+	const dotColor = dotColorForListName(list.name);
+	const completedInList = cards.filter((c) => c.completed === true).length;
+	const totalInList = cards.length;
+	const progressPct =
+		totalInList > 0 ? Math.round((completedInList / totalInList) * 100) : 0;
+
 	return (
-		<div className="flex w-[272px] shrink-0 flex-col rounded-lg bg-[var(--ds-background-accent-gray-subtlest)] shadow-[0_1px_1px_#091e4240,0_0_1px_#091e424f]">
+		<div className="column flex w-[272px] shrink-0 flex-col rounded-lg bg-[var(--ds-background-accent-gray-subtlest)] shadow-[0_1px_1px_#091e4240,0_0_1px_#091e424f]">
 			<div
-				className="flex cursor-grab items-center gap-1 px-3 pt-2.5 pb-1.5 active:cursor-grabbing"
+				className="flex cursor-grab items-center gap-2 px-3 pt-2.5 pb-1.5 active:cursor-grabbing"
 				{...dragHandleProps}
 			>
+				<span className="column-dot" data-color={dotColor} aria-hidden="true" />
 				{editingTitle ? (
 					<input
 						value={titleDraft}
@@ -142,6 +164,9 @@ export function ListColumn({
 						{list.name}
 					</button>
 				)}
+				<span className="column-count-pill" title={`${totalInList} cartes`}>
+					{totalInList}
+				</span>
 				<Popover open={menuOpen} onOpenChange={setMenuOpen}>
 					<PopoverTrigger asChild>
 						<button
@@ -214,8 +239,17 @@ export function ListColumn({
 				</Popover>
 			</div>
 
+			{/* Micro-progress bar — % cartes terminées dans la liste */}
+			<div
+				className="column-progress"
+				style={{ "--p": `${progressPct}%` } as React.CSSProperties}
+				aria-hidden="true"
+			>
+				<span />
+			</div>
+
 			<SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-				<div className="flex max-h-[calc(100vh-15rem)] min-h-[10px] flex-col gap-2 overflow-y-auto px-2 pb-1">
+				<div className="flex max-h-[calc(100vh-15rem)] min-h-[10px] flex-col gap-2 overflow-y-auto px-2 pb-1 pt-2">
 					{cards.map((card) => (
 						<SortableCardItem key={card._id} card={card} />
 					))}

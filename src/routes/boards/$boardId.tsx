@@ -21,31 +21,30 @@ import {
 } from "@tanstack/react-router";
 import { useMutation, useQuery } from "convex/react";
 import {
+	Calendar as CalendarIcon,
+	Columns3,
 	Filter,
 	Grid3x3,
+	LayoutDashboard,
+	List as ListIcon,
 	MoreHorizontal,
+	Plus,
+	Rows3,
 	Star,
+	StretchHorizontal,
 	Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "#/components/ui/button";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
 } from "#/components/ui/popover";
-import { authClient } from "#/lib/auth-client";
-import {
-	BOARD_GRADIENTS,
-	gradientFor,
-	photoFor,
-} from "#/lib/board-backgrounds";
-import { midPosition } from "#/lib/board-helpers";
-import { pushRecentBoard } from "#/lib/use-recent-boards";
-import { type BoardViewMode, BoardFooter } from "#/features/board/BoardFooter";
+import { BoardFooter, type BoardViewMode } from "#/features/board/BoardFooter";
 import { BoardMenu } from "#/features/board/BoardMenu";
-import { FilterPopoverContent } from "#/features/board/FilterPopoverContent";
 import { CardItem } from "#/features/board/card/CardItem";
+import { FilterPopoverContent } from "#/features/board/FilterPopoverContent";
 import {
 	AddListColumn,
 	ListColumn,
@@ -54,10 +53,18 @@ import {
 import { MemberAvatar } from "#/features/board/shared/MemberAvatar";
 import { NotificationBell } from "#/features/board/shared/NotificationBell";
 import { ShareBoardDialog } from "#/features/board/shared/ShareBoardDialog";
-import { FlowboardLogoFull } from "#/features/shared/FlowboardLogo";
-import { GlobalSearch } from "#/features/shared/GlobalSearch";
 import { CalendarView } from "#/features/board/views/CalendarView";
 import { TableView } from "#/features/board/views/TableView";
+import { FlowboardLogoFull } from "#/features/shared/FlowboardLogo";
+import { GlobalSearch } from "#/features/shared/GlobalSearch";
+import { authClient } from "#/lib/auth-client";
+import {
+	BOARD_GRADIENTS,
+	gradientFor,
+	photoFor,
+} from "#/lib/board-backgrounds";
+import { midPosition } from "#/lib/board-helpers";
+import { pushRecentBoard } from "#/lib/use-recent-boards";
 import { api } from "../../../convex/_generated/api";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
@@ -141,10 +148,10 @@ function BoardDetailPage() {
 			userInitial={initial}
 			onSignOut={handleSignOut}
 			initialView={mapViewParam(viewParam)}
+			viewParam={viewParam}
 		/>
 	);
 }
-
 
 type BoardData = {
 	board: Doc<"boards">;
@@ -152,18 +159,54 @@ type BoardData = {
 	cards: Array<Doc<"cards">>;
 };
 
+// ─── Helpers Phase 3b : densité + vue d'affichage ──────────────
+type Density = "compact" | "normal" | "detailed";
+type SubViewId = "board" | "calendar" | "timeline" | "dashboard";
+
+const DENSITY_KEY = "flowboard.board.density";
+
+function readDensity(): Density {
+	if (typeof window === "undefined") return "normal";
+	try {
+		const v = localStorage.getItem(DENSITY_KEY);
+		if (v === "compact" || v === "normal" || v === "detailed") return v;
+	} catch {
+		/* ignore */
+	}
+	return "normal";
+}
+
+function boardViewToSubView(
+	view: BoardViewMode,
+	rawParam: string | undefined,
+): SubViewId {
+	if (rawParam === "timeline" || rawParam === "dashboard") return rawParam;
+	if (view === "calendar") return "calendar";
+	if (view === "table") return "timeline";
+	return "board";
+}
+
+function subViewToBoardMode(v: SubViewId): BoardViewMode {
+	if (v === "calendar") return "calendar";
+	if (v === "timeline" || v === "dashboard") return "table";
+	return "kanban";
+}
+
 // Calcule une nouvelle position pour insérer entre prev et next
 function BoardView({
 	data,
 	userInitial,
 	onSignOut,
 	initialView,
+	viewParam,
 }: {
 	data: BoardData;
 	userInitial: string;
 	onSignOut: () => void;
 	initialView: BoardViewMode;
+	viewParam: string | undefined;
 }) {
+	const navigate = useNavigate();
 	const { board, lists: serverLists, cards: serverCards } = data;
 	const photo = photoFor(board.backgroundImage);
 	const gradientClass = gradientFor(board.color);
@@ -181,13 +224,53 @@ function BoardView({
 
 	// Filtres
 	const [filterQuery, setFilterQuery] = useState("");
-	const [filterLabelIds, setFilterLabelIds] = useState<Array<Id<"labels">>>(
-		[],
-	);
+	const [filterLabelIds, setFilterLabelIds] = useState<Array<Id<"labels">>>([]);
 	const [colorBlind, setColorBlind] = useState(false);
 
 	// Mode d'affichage du board (initialisé depuis le paramètre d'URL ?view=)
 	const [view, setView] = useState<BoardViewMode>(initialView);
+
+	// Vue actuelle de la sidebar/topbar (board|calendar|timeline|dashboard).
+	// Mappée vers `view` pour le rendu (kanban/calendar/table).
+	const [subView, setSubView] = useState<SubViewId>(() =>
+		boardViewToSubView(initialView, viewParam),
+	);
+
+	// Densité des cartes (compact|normal|detailed) — persisté en localStorage.
+	const [density, setDensity] = useState<Density>(() => readDensity());
+	useEffect(() => {
+		try {
+			localStorage.setItem(DENSITY_KEY, density);
+		} catch {
+			/* ignore */
+		}
+	}, [density]);
+
+	// Sync URL ?view= quand on change la vue depuis le sub-header
+	const switchView = useCallback(
+		(v: SubViewId) => {
+			setSubView(v);
+			setView(subViewToBoardMode(v));
+			navigate({
+				to: "/boards/$boardId",
+				params: { boardId: board._id },
+				search: { view: v },
+				replace: true,
+			});
+		},
+		[board._id, navigate],
+	);
+
+	// Ajout de carte rapide via le CTA "+ Carte" — cible la première liste
+	const createCard = useMutation(api.cards.create);
+	const handleQuickAdd = useCallback(async () => {
+		const first = [...localLists].sort((a, b) => a.position - b.position)[0];
+		if (!first) return;
+		await createCard({
+			listId: first._id,
+			title: "Nouvelle carte",
+		});
+	}, [localLists, createCard]);
 
 	// Synchroniser depuis Convex quand on n'est pas en drag
 	useEffect(() => {
@@ -456,6 +539,25 @@ function BoardView({
 				hasActiveFilters={hasActiveFilters}
 			/>
 
+			{/* Nouveau sub-header Lume Éclat (Phase 3b) */}
+			<KanbanSubHeader
+				board={board}
+				cardCount={filteredCards.length}
+				subView={subView}
+				onSwitchView={switchView}
+				density={density}
+				onDensityChange={setDensity}
+				filterQuery={filterQuery}
+				setFilterQuery={setFilterQuery}
+				filterLabelIds={filterLabelIds}
+				setFilterLabelIds={setFilterLabelIds}
+				colorBlind={colorBlind}
+				setColorBlind={setColorBlind}
+				hasActiveFilters={hasActiveFilters}
+				onQuickAdd={() => void handleQuickAdd()}
+				canQuickAdd={localLists.length > 0}
+			/>
+
 			{/* Rendu selon le mode de vue */}
 			{view === "table" && (
 				<TableView
@@ -470,52 +572,54 @@ function BoardView({
 
 			{/* Vue Kanban (par défaut) */}
 			{view === "kanban" && (
-			<DndContext
-				sensors={sensors}
-				collisionDetection={closestCorners}
-				onDragStart={handleDragStart}
-				onDragOver={handleDragOver}
-				onDragEnd={handleDragEnd}
-			>
-				<main className="relative z-10 flex-1 overflow-x-auto overflow-y-hidden px-3 pb-24 pt-2">
-					<SortableContext
-						items={listIds}
-						strategy={horizontalListSortingStrategy}
-					>
-						{/* `pr-3` après la dernière liste = gap droit visuel (style Trello) */}
-						<div className="flex h-full items-start gap-3 pr-3">
-							{sortedLists.map((list) => (
-								<SortableListColumn
-									key={list._id}
-									list={list}
-									cards={filteredCards.filter((c) => c.listId === list._id)}
+				<DndContext
+					sensors={sensors}
+					collisionDetection={closestCorners}
+					onDragStart={handleDragStart}
+					onDragOver={handleDragOver}
+					onDragEnd={handleDragEnd}
+				>
+					<main className="relative z-10 flex-1 overflow-x-auto overflow-y-hidden px-3 pb-24 pt-2">
+						<SortableContext
+							items={listIds}
+							strategy={horizontalListSortingStrategy}
+						>
+							{/* `pr-3` après la dernière liste = gap droit visuel (style Trello) */}
+							<div
+								className={`board is-density-${density} flex h-full items-start gap-3 pr-3`}
+							>
+								{sortedLists.map((list) => (
+									<SortableListColumn
+										key={list._id}
+										list={list}
+										cards={filteredCards.filter((c) => c.listId === list._id)}
+									/>
+								))}
+								<AddListColumn
+									boardId={board._id}
+									hasLists={sortedLists.length > 0}
 								/>
-							))}
-							<AddListColumn
-								boardId={board._id}
-								hasLists={sortedLists.length > 0}
-							/>
-						</div>
-					</SortableContext>
-				</main>
+							</div>
+						</SortableContext>
+					</main>
 
-				{/* Overlay visuel pendant le drag */}
-				<DragOverlay>
-					{activeCard && (
-						<div className="rotate-2 opacity-90">
-							<CardItem card={activeCard} />
-						</div>
-					)}
-					{activeList && (
-						<div className="opacity-90">
-							<ListColumn
-								list={activeList}
-								cards={localCards.filter((c) => c.listId === activeList._id)}
-							/>
-						</div>
-					)}
-				</DragOverlay>
-			</DndContext>
+					{/* Overlay visuel pendant le drag */}
+					<DragOverlay>
+						{activeCard && (
+							<div className="rotate-2 opacity-90">
+								<CardItem card={activeCard} />
+							</div>
+						)}
+						{activeList && (
+							<div className="opacity-90">
+								<ListColumn
+									list={activeList}
+									cards={localCards.filter((c) => c.listId === activeList._id)}
+								/>
+							</div>
+						)}
+					</DragOverlay>
+				</DndContext>
 			)}
 
 			{/* Footer flottant style Trello (Boîte de réception, Agenda, Tableau, Changer) */}
@@ -549,10 +653,7 @@ function TrelloTopBar({
 				>
 					<Grid3x3 className="h-4 w-4" />
 				</button>
-				<Link
-					to="/boards"
-					className="flex items-center px-1.5 text-white"
-				>
+				<Link to="/boards" className="flex items-center px-1.5 text-white">
 					<FlowboardLogoFull iconClassName="h-6 w-6" />
 				</Link>
 			</div>
@@ -613,7 +714,9 @@ function BoardSubHeader({
 	const [filterOpen, setFilterOpen] = useState(false);
 	const [shareOpen, setShareOpen] = useState(false);
 	const starred = board.starred ?? false;
-	const members = useQuery(api.boardMembers.listMembers, { boardId: board._id });
+	const members = useQuery(api.boardMembers.listMembers, {
+		boardId: board._id,
+	});
 	const memberCount = members?.length ?? 0;
 
 	useEffect(() => {
@@ -708,12 +811,7 @@ function BoardSubHeader({
 
 				<div className="flex items-center -space-x-2">
 					{(members ?? []).slice(0, 4).map((m) => (
-						<MemberAvatar
-							key={m._id}
-							name={m.userName}
-							size={28}
-							ring
-						/>
+						<MemberAvatar key={m._id} name={m.userName} size={28} ring />
 					))}
 					{memberCount > 4 && (
 						<div className="z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#172b4d] text-[10px] font-semibold text-white">
@@ -751,12 +849,223 @@ function BoardSubHeader({
 						side="bottom"
 						sideOffset={8}
 					>
-						<BoardMenu
-							board={board}
-							onClose={() => setBoardMenuOpen(false)}
+						<BoardMenu board={board} onClose={() => setBoardMenuOpen(false)} />
+					</PopoverContent>
+				</Popover>
+			</div>
+		</div>
+	);
+}
+
+// ════════════════════════════════════════════════════════════════
+// Sub-header Lume Éclat (Phase 3b) — sticky, 56px, sous le topbar
+// ════════════════════════════════════════════════════════════════
+function KanbanSubHeader({
+	board,
+	cardCount,
+	subView,
+	onSwitchView,
+	density,
+	onDensityChange,
+	filterQuery,
+	setFilterQuery,
+	filterLabelIds,
+	setFilterLabelIds,
+	colorBlind,
+	setColorBlind,
+	hasActiveFilters,
+	onQuickAdd,
+	canQuickAdd,
+}: {
+	board: Doc<"boards">;
+	cardCount: number;
+	subView: SubViewId;
+	onSwitchView: (v: SubViewId) => void;
+	density: Density;
+	onDensityChange: (d: Density) => void;
+	filterQuery: string;
+	setFilterQuery: (v: string) => void;
+	filterLabelIds: Array<Id<"labels">>;
+	setFilterLabelIds: (v: Array<Id<"labels">>) => void;
+	colorBlind: boolean;
+	setColorBlind: (v: boolean) => void;
+	hasActiveFilters: boolean;
+	onQuickAdd: () => void;
+	canQuickAdd: boolean;
+}) {
+	const toggleStar = useMutation(api.boards.toggleStar);
+	const boardLabels = useQuery(api.labels.listForBoard, { boardId: board._id });
+	const members = useQuery(api.boardMembers.listMembers, {
+		boardId: board._id,
+	});
+	const [filterOpen, setFilterOpen] = useState(false);
+	const starred = board.starred ?? false;
+	const memberCount = members?.length ?? 0;
+	const filterCount = filterLabelIds.length + (filterQuery.trim() ? 1 : 0);
+	const firstInitial = (board.name || "?").charAt(0).toUpperCase();
+
+	const views: Array<{
+		id: SubViewId;
+		label: string;
+		icon: React.ComponentType<{ className?: string }>;
+	}> = useMemo(
+		() => [
+			{ id: "board", label: "Board", icon: Columns3 },
+			{ id: "calendar", label: "Calendrier", icon: CalendarIcon },
+			{ id: "timeline", label: "Timeline", icon: StretchHorizontal },
+			{ id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+		],
+		[],
+	);
+
+	return (
+		<div className="kb-subhead">
+			{/* ── LEFT ── */}
+			<div className="kb-subhead-left">
+				<span className="kb-board-icon" aria-hidden="true">
+					{firstInitial}
+				</span>
+				<h1 className="kb-board-title" title={board.name}>
+					{board.name}
+				</h1>
+				<button
+					type="button"
+					onClick={() => void toggleStar({ boardId: board._id })}
+					className={`kb-star ${starred ? "is-on" : ""}`}
+					aria-pressed={starred}
+					aria-label={starred ? "Retirer des favoris" : "Marquer comme favori"}
+				>
+					<Star />
+				</button>
+				<span className="kb-board-meta">
+					{cardCount} {cardCount > 1 ? "cartes" : "carte"}
+				</span>
+			</div>
+
+			{/* ── CENTER : view switcher ── */}
+			<div className="kb-views" role="tablist" aria-label="Mode d'affichage">
+				{views.map((v) => {
+					const Ico = v.icon;
+					const active = subView === v.id;
+					return (
+						<button
+							key={v.id}
+							type="button"
+							role="tab"
+							aria-selected={active}
+							className={`kb-view-btn ${active ? "is-active" : ""}`}
+							onClick={() => onSwitchView(v.id)}
+						>
+							<Ico />
+							<span>{v.label}</span>
+						</button>
+					);
+				})}
+			</div>
+
+			{/* ── RIGHT : density + filters + members + CTA ── */}
+			<div className="kb-subhead-right">
+				<div
+					className="kb-density"
+					role="group"
+					aria-label="Densité d'affichage"
+				>
+					<button
+						type="button"
+						className={`kb-density-btn ${density === "compact" ? "is-active" : ""}`}
+						onClick={() => onDensityChange("compact")}
+						aria-label="Compact"
+						aria-pressed={density === "compact"}
+					>
+						<ListIcon />
+					</button>
+					<button
+						type="button"
+						className={`kb-density-btn ${density === "normal" ? "is-active" : ""}`}
+						onClick={() => onDensityChange("normal")}
+						aria-label="Normal"
+						aria-pressed={density === "normal"}
+					>
+						<Rows3 />
+					</button>
+					<button
+						type="button"
+						className={`kb-density-btn ${density === "detailed" ? "is-active" : ""}`}
+						onClick={() => onDensityChange("detailed")}
+						aria-label="Détaillé"
+						aria-pressed={density === "detailed"}
+					>
+						<Grid3x3 />
+					</button>
+				</div>
+
+				<Popover open={filterOpen} onOpenChange={setFilterOpen}>
+					<PopoverTrigger asChild>
+						<button
+							type="button"
+							className={`kb-ghost ${hasActiveFilters ? "is-active" : ""}`}
+							aria-label="Filtres"
+						>
+							<Filter />
+							<span>Filtres</span>
+							{hasActiveFilters && (
+								<span className="kb-ghost-count">{filterCount}</span>
+							)}
+						</button>
+					</PopoverTrigger>
+					<PopoverContent
+						className="w-80 p-3"
+						align="end"
+						side="bottom"
+						sideOffset={8}
+					>
+						<FilterPopoverContent
+							query={filterQuery}
+							setQuery={setFilterQuery}
+							labelIds={filterLabelIds}
+							setLabelIds={setFilterLabelIds}
+							boardLabels={boardLabels ?? []}
+							colorBlind={colorBlind}
+							setColorBlind={setColorBlind}
 						/>
 					</PopoverContent>
 				</Popover>
+
+				{memberCount > 0 && (
+					<div className="kb-members">
+						{(members ?? []).slice(0, 4).map((m) => (
+							<MemberAvatar
+								key={m._id}
+								name={m.userName}
+								size={26}
+								title={m.userName}
+							/>
+						))}
+						{memberCount > 4 && (
+							<span
+								className="kb-member--more"
+								title={`+${memberCount - 4} autres membres`}
+							>
+								+{memberCount - 4}
+							</span>
+						)}
+					</div>
+				)}
+
+				<button
+					type="button"
+					className="kb-cta"
+					onClick={onQuickAdd}
+					disabled={!canQuickAdd}
+					title={
+						canQuickAdd
+							? "Ajouter une carte à la première liste"
+							: "Créez d'abord une liste"
+					}
+				>
+					<Plus />
+					<span>Carte</span>
+				</button>
 			</div>
 		</div>
 	);

@@ -29,8 +29,8 @@ import { dueDateState, formatDueDate } from "#/lib/board-helpers";
 import { api } from "../../../../convex/_generated/api";
 import type { Doc, Id } from "../../../../convex/_generated/dataModel";
 import {
-	type CardPanel,
 	CardDetailModal,
+	type CardPanel,
 	CoverPanel,
 	DatesPanel,
 	LabelPicker,
@@ -122,6 +122,18 @@ export function CardItem({
 	const coverPhoto = card.coverImage ? photoFor(card.coverImage) : undefined;
 	const hasCover = Boolean(card.coverColor || coverPhoto);
 
+	// Aging — carte créée il y a >5j et non terminée. Convex expose
+	// _creationTime automatiquement ; on n'a pas de `lastActivity` pour
+	// l'instant (TODO : tracker l'activité côté backend).
+	const AGING_THRESHOLD_MS = 5 * 24 * 60 * 60 * 1000;
+	const isAging =
+		!completed &&
+		!card.archived &&
+		Date.now() - card._creationTime > AGING_THRESHOLD_MS;
+
+	const checklistPct =
+		totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0;
+
 	return (
 		<>
 			<Popover
@@ -148,11 +160,11 @@ export function CardItem({
 						}}
 						role="button"
 						tabIndex={0}
-						className="group relative cursor-pointer overflow-hidden rounded-lg bg-white shadow-[0_1px_1px_#091e4240,0_0_1px_#091e424f] transition-shadow hover:shadow-[0_4px_8px_-2px_#091e4240,0_0_1px_#091e424f]"
+						className={`kcard kb-card group relative cursor-pointer overflow-hidden rounded-lg bg-white shadow-[0_1px_1px_#091e4240,0_0_1px_#091e424f] transition-shadow hover:shadow-[0_4px_8px_-2px_#091e4240,0_0_1px_#091e424f] ${isAging ? "is-aging" : ""}`}
 					>
 						{hasCover && (
 							<div
-								className={`h-20 w-full ${card.coverColor ? `bg-gradient-to-br ${gradientFor(card.coverColor)}` : ""}`}
+								className={`kcard-cover h-20 w-full ${card.coverColor ? `bg-gradient-to-br ${gradientFor(card.coverColor)}` : ""}`}
 								style={
 									coverPhoto
 										? {
@@ -167,7 +179,7 @@ export function CardItem({
 
 						<div className="px-3 py-2">
 							{attachedLabels.length > 0 && (
-								<div className="mb-1.5 flex flex-wrap gap-1">
+								<div className="kcard-labels-row mb-1.5 flex flex-wrap gap-1">
 									{attachedLabels.map((label) => {
 										const s = labelStyle(label.color);
 										return (
@@ -224,11 +236,11 @@ export function CardItem({
 										// biome-ignore lint/a11y/noAutofocus: focus immédiat en mode édition rapide
 										autoFocus
 										rows={2}
-										className={`flex-1 resize-none border-0 bg-transparent p-0 text-sm font-medium text-[#172b4d] shadow-none focus-visible:ring-0 ${completed ? "line-through opacity-60" : ""}`}
+										className={`kcard-title flex-1 resize-none border-0 bg-transparent p-0 text-sm font-medium text-[#172b4d] shadow-none focus-visible:ring-0 ${completed ? "line-through opacity-60" : ""}`}
 									/>
 								) : (
 									<span
-										className={`block flex-1 text-left text-sm text-[#172B4D] ${
+										className={`kcard-title block flex-1 text-left text-sm text-[#172B4D] ${
 											completed ? "line-through opacity-60" : ""
 										}`}
 									>
@@ -237,11 +249,15 @@ export function CardItem({
 								)}
 							</div>
 
+							{hasDescription && (
+								<p className="kcard-desc">{card.description}</p>
+							)}
+
 							{(hasDescription ||
 								hasChecklist ||
 								card.dueDate ||
 								(card.memberIds?.length ?? 0) > 0) && (
-								<div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-[#6B6E76]">
+								<div className="kcard-meta-row mt-1.5 flex flex-wrap items-center gap-2 text-xs text-[#6B6E76]">
 									{card.dueDate &&
 										(() => {
 											const state = dueDateState(
@@ -303,6 +319,16 @@ export function CardItem({
 											memberIds={card.memberIds ?? []}
 										/>
 									)}
+								</div>
+							)}
+
+							{hasChecklist && (
+								<div
+									className="kcard-checkbar"
+									style={{ "--p": `${checklistPct}%` } as React.CSSProperties}
+									aria-hidden="true"
+								>
+									<span />
 								</div>
 							)}
 						</div>
