@@ -1,5 +1,5 @@
-/* Police Geist (design system gestion-pro) */
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap');
+/* Polices Lume Éclat — Geist (sans), Geist Mono (mono), Instrument Serif (italique garniture) */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
 /* Design tokens Atlassian — conservés pour les écrans board encore en transition */
 @import './atlassian-tokens.css';
 @import 'tailwindcss';
@@ -8,95 +8,199 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ============== GESTION-PRO DESIGN TOKENS ============== */
-:root {
-  /* Surfaces (warm neutrals) */
-  --bg: #fbfbfa;
-  --bg-soft: #f5f5f3;
-  --bg-sunken: #f0f0ee;
-  --surface: #ffffff;
-  --surface-hover: #f7f7f5;
+/* ══════════════════════════════════════════════════════════════
+   LUME ÉCLAT v3 — amber edition · DESIGN TOKENS
+   ══════════════════════════════════════════════════════════════
+   Light par défaut. Switch dark via <html data-theme="dark">.
+   Les noms sémantiques (--bg, --text, --accent, etc.) sont
+   conservés ; seules les valeurs migrent vers la palette Lume
+   pour que toutes les classes (.gp-app, .topbar, .kcard, ...)
+   adoptent le nouveau look sans renommage.
+   ══════════════════════════════════════════════════════════════ */
+
+:root,
+:root[data-theme="light"] {
+  /* ── PRIMITIVES Lume (utilisables en direct si besoin) ──── */
+  --amber-50:  #FDF3DC;
+  --amber-100: #FBE5B0;
+  --amber-200: #F8D17C;
+  --amber-300: #F0A830; /* core dark */
+  --amber-400: #D88B1A; /* core light */
+  --amber-500: #B36F12;
+  --amber-600: #82500B;
+  --amber-700: #533108;
+
+  --ink-0: #06070A;
+  --ink-1: #0B0D12;
+  --ink-2: #11141B;
+  --ink-3: #181C25;
+  --ink-4: #232936;
+  --ink-5: #2E3645;
+  --ink-6: #3A4252;
+
+  --bone-0: #FFFFFE;
+  --bone-1: #FAFAF5;
+  --bone-2: #C9C9BD;
+  --bone-3: #8E8E83;
+  --bone-4: #5C5C54;
+
+  --plum-500:  #7C4DFF;
+  --ember-400: #E0573A;
+  --ember-500: #C8412A;
+  --rose-400:  #C76A82;
+  --rose-500:  #A94A65;
+  --teal-400:  #2EA89B;
+  --teal-500:  #1F8478;
+
+  /* ── SURFACES (light = warm bone, jamais blanc pur) ────── */
+  --bg:           #F7F5EE;              /* page background */
+  --bg-soft:      #FAFAF5;              /* sidebar, soft surface */
+  --bg-sunken:    #F0EDE3;              /* inset / sunken */
+  --surface:      #FFFFFE;              /* card / tile */
+  --surface-hover:#F7F4EA;              /* hover wash */
+
+  /* ── BORDERS ────────────────────────────────────────────── */
+  --border-c:     rgba(11, 13, 18, 0.08);
+  --border-strong:rgba(11, 13, 18, 0.14);
+  --border-focus: rgba(216, 139, 26, 0.45); /* amber-accent ring */
+
+  /* ── TEXT (foreground sur bone) ─────────────────────────── */
+  --text:         #0B0D12;              /* ink-1 primary */
+  --text-muted:   #5C6478;              /* cool muted */
+  --text-subtle:  #8E8E83;              /* bone-3 tertiary */
+  --text-inverse: #FFFFFE;
+
+  /* ── ACCENT — amber (le seul) ───────────────────────────── */
+  --accent:       #D88B1A;              /* amber-400 light core */
+  --accent-hover: #B36F12;              /* amber-500 */
+  --accent-soft:  rgba(216, 139, 26, 0.14);
+  --accent-soft-2:rgba(216, 139, 26, 0.25);
+  --accent-text:  #82500B;              /* amber-600 ink */
+  --accent-glow:  rgba(216, 139, 26, 0.30);
+
+  /* ── ÉTATS (palette Lume étendue, pas dérivés indigo) ───── */
+  --green:        var(--teal-500);
+  --green-soft:   rgba(31, 132, 120, 0.12);
+  --amber:        #D88B1A;
+  --amber-soft:   rgba(216, 139, 26, 0.14);
+  --red:          var(--ember-500);
+  --red-soft:     rgba(200, 65, 42, 0.12);
+  --blue:         var(--plum-500);
+  --blue-soft:    rgba(124, 77, 255, 0.10);
+
+  /* ── TYPOGRAPHIE ────────────────────────────────────────── */
+  --font-sans:  'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:  'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
+
+  /* ── RADIUS ─────────────────────────────────────────────── */
+  --r-xs:  3px;
+  --r-sm:  5px;
+  --r-md:  8px;
+  --r-lg:  12px;
+  --r-xl:  16px;
+  --r-2xl: 22px;
+
+  /* ── OMBRES (soft sur bone) ─────────────────────────────── */
+  --shadow-xs:    0 1px 0 rgba(11, 13, 18, 0.04);
+  --shadow-sm:    0 1px 2px rgba(11, 13, 18, 0.08), 0 1px 0 rgba(11, 13, 18, 0.04);
+  --shadow-md:    0 4px 12px -2px rgba(11, 13, 18, 0.10), 0 1px 0 rgba(11, 13, 18, 0.04);
+  --shadow-lg:    0 12px 32px -10px rgba(11, 13, 18, 0.16), 0 1px 0 rgba(11, 13, 18, 0.04);
+  --shadow-modal: 0 24px 60px -20px rgba(11, 13, 18, 0.28), 0 1px 0 rgba(11, 13, 18, 0.04);
+
+  /* ── MOTION ─────────────────────────────────────────────── */
+  --duration-fast:   140ms;
+  --duration-base:   220ms;
+  --duration-slow:   420ms;
+  --ease-out:        cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── LAYOUT ─────────────────────────────────────────────── */
+  --sidebar-w: 260px;
+  --sidebar-rail-w: 56px;
+  --topbar-h:  56px;
+
+  /* ── shadcn/ui — mappés sur la couche sémantique Lume ───── */
+  --background:           var(--bg);
+  --foreground:           var(--text);
+  --card:                 var(--surface);
+  --card-foreground:      var(--text);
+  --popover:              var(--surface);
+  --popover-foreground:   var(--text);
+  --primary:              var(--accent);
+  --primary-foreground:   var(--text-inverse);
+  --secondary:            var(--bg-soft);
+  --secondary-foreground: var(--text);
+  --muted:                var(--bg-soft);
+  --muted-foreground:     var(--text-muted);
+  --accent-shadcn:        var(--accent-soft);
+  --accent-foreground:    var(--accent-text);
+  --destructive:          var(--red);
+  --destructive-foreground:var(--text-inverse);
+  --border:               var(--border-c);
+  --input:                var(--border-strong);
+  --ring:                 var(--accent);
+  --radius:               0.5rem;
+  --sidebar:              var(--bg-soft);
+  --sidebar-foreground:   var(--text);
+  --sidebar-primary:      var(--accent);
+  --sidebar-primary-foreground:var(--text-inverse);
+  --sidebar-accent:       var(--surface-hover);
+  --sidebar-accent-foreground:var(--text);
+  --sidebar-border:       var(--border-c);
+  --sidebar-ring:         var(--accent);
+
+  color-scheme: light;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DARK · variant via <html data-theme="dark">
+   ══════════════════════════════════════════════════════════════ */
+:root[data-theme="dark"] {
+  /* Surfaces (ink, blue-tinted blacks) */
+  --bg:           var(--ink-0);
+  --bg-soft:      var(--ink-1);
+  --bg-sunken:    var(--ink-2);
+  --surface:      var(--ink-3);
+  --surface-hover:var(--ink-4);
 
   /* Borders */
-  --border-c: #ececea;
-  --border-strong: #dcdcd8;
-  --border-focus: #bdb9f0;
+  --border-c:     rgba(250, 250, 245, 0.07);
+  --border-strong:rgba(250, 250, 245, 0.13);
+  --border-focus: rgba(240, 168, 48, 0.40);
 
-  /* Text */
-  --text: #18181a;
-  --text-muted: #6b6b68;
-  --text-subtle: #a0a09c;
-  --text-inverse: #ffffff;
+  /* Text (bone, warm whites) */
+  --text:         var(--bone-1);
+  --text-muted:   var(--bone-2);
+  --text-subtle:  var(--bone-3);
+  --text-inverse: var(--ink-0);
 
-  /* Accent — indigo unique */
-  --accent: oklch(0.52 0.19 275);
-  --accent-hover: oklch(0.46 0.2 275);
-  --accent-soft: oklch(0.95 0.04 275);
-  --accent-soft-2: oklch(0.88 0.07 275);
-  --accent-text: oklch(0.4 0.18 275);
+  /* Accent — amber-300 plus lumineux sur dark */
+  --accent:       var(--amber-300);
+  --accent-hover: var(--amber-200);
+  --accent-soft:  rgba(240, 168, 48, 0.14);
+  --accent-soft-2:rgba(240, 168, 48, 0.25);
+  --accent-text:  var(--amber-100);
+  --accent-glow:  rgba(240, 168, 48, 0.45);
 
   /* États */
-  --green: oklch(0.58 0.13 155);
-  --green-soft: oklch(0.95 0.04 155);
-  --amber: oklch(0.74 0.14 75);
-  --amber-soft: oklch(0.95 0.05 75);
-  --red: oklch(0.58 0.18 25);
-  --red-soft: oklch(0.95 0.04 25);
-  --blue: oklch(0.58 0.13 240);
-  --blue-soft: oklch(0.95 0.04 240);
+  --green:        var(--teal-400);
+  --green-soft:   rgba(46, 168, 155, 0.16);
+  --amber:        var(--amber-300);
+  --amber-soft:   rgba(240, 168, 48, 0.14);
+  --red:          var(--ember-400);
+  --red-soft:     rgba(224, 87, 58, 0.14);
+  --blue:         var(--plum-500);
+  --blue-soft:    rgba(124, 77, 255, 0.16);
 
-  /* Typographie */
-  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+  /* Ombres plus profondes */
+  --shadow-xs:    0 1px 0 rgba(0, 0, 0, 0.30);
+  --shadow-sm:    0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(0, 0, 0, 0.30);
+  --shadow-md:    0 4px 12px -2px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(0, 0, 0, 0.30);
+  --shadow-lg:    0 16px 40px -12px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(0, 0, 0, 0.35);
+  --shadow-modal: 0 40px 96px -28px rgba(0, 0, 0, 0.72), 0 1px 0 rgba(0, 0, 0, 0.40);
 
-  /* Radius */
-  --r-xs: 4px;
-  --r-sm: 6px;
-  --r-md: 8px;
-  --r-lg: 12px;
-  --r-xl: 16px;
-  --r-2xl: 20px;
-
-  /* Ombres */
-  --shadow-xs: 0 1px 0 rgba(20, 20, 18, 0.04);
-  --shadow-sm: 0 1px 2px rgba(20, 20, 18, 0.06), 0 1px 1px rgba(20, 20, 18, 0.03);
-  --shadow-md: 0 4px 12px rgba(20, 20, 18, 0.08), 0 1px 2px rgba(20, 20, 18, 0.04);
-  --shadow-lg: 0 16px 48px rgba(20, 20, 18, 0.12), 0 4px 12px rgba(20, 20, 18, 0.06);
-  --shadow-modal: 0 24px 80px rgba(20, 20, 18, 0.2), 0 8px 24px rgba(20, 20, 18, 0.1);
-
-  /* Layout — dimensions reprises de l'ancien Flowboard */
-  --sidebar-w: 260px;
-  --topbar-h: 56px;
-
-  /* Tokens shadcn/ui — mappés sur le design system gestion-pro */
-  --background: var(--bg);
-  --foreground: var(--text);
-  --card: var(--surface);
-  --card-foreground: var(--text);
-  --popover: var(--surface);
-  --popover-foreground: var(--text);
-  --primary: var(--accent);
-  --primary-foreground: #ffffff;
-  --secondary: var(--bg-soft);
-  --secondary-foreground: var(--text);
-  --muted: var(--bg-soft);
-  --muted-foreground: var(--text-muted);
-  --accent-shadcn: var(--surface-hover);
-  --accent-foreground: var(--text);
-  --destructive: var(--red);
-  --destructive-foreground: #ffffff;
-  --border: var(--border-c);
-  --input: var(--border-strong);
-  --ring: var(--accent);
-  --radius: 0.5rem;
-  --sidebar: var(--bg-soft);
-  --sidebar-foreground: var(--text);
-  --sidebar-primary: var(--accent);
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: var(--surface-hover);
-  --sidebar-accent-foreground: var(--text);
-  --sidebar-border: var(--border-c);
-  --sidebar-ring: var(--accent);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -1176,7 +1280,60 @@ body {
   }
 }
 
-/* Scrollbars */
+/* ============== UTILITAIRES LUME ============== */
+/* Garniture italique serif — un seul mot par écran (règle éditoriale) */
+.serif-italic {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent-hover);
+  letter-spacing: -0.02em;
+}
+
+/* Pulse amber, la signature Lume — utilisable inline */
+.ping {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+  animation: ping 2.2s ease-in-out infinite;
+}
+@keyframes ping {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* Focus ring amber (override Tailwind) — discret mais visible */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-radius: var(--r-md);
+}
+
+/* Sélection texte en amber */
+::selection {
+  background: var(--accent-soft-2);
+  color: var(--text);
+}
+
+/* Numbers tabular by default — pour les colonnes de chiffres alignés */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Respect reduced motion (Lume hard rule) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============== SCROLLBARS (theme-aware) ============== */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -1185,18 +1342,28 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(11, 13, 18, 0.10);
   border-radius: 6px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.16);
-  border: 2px solid transparent;
+  background: rgba(11, 13, 18, 0.20);
+  background-clip: padding-box;
+}
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(250, 250, 245, 0.06);
+  background-clip: padding-box;
+}
+:root[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(250, 250, 245, 0.12);
   background-clip: padding-box;
 }
 .board-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(11, 13, 18, 0.30);
+}
+:root[data-theme="dark"] .board-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(250, 250, 245, 0.20);
 }
 
 /* Mode daltonien : motifs rayés sur les étiquettes */
